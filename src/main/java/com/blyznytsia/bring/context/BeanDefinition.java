@@ -1,15 +1,15 @@
 package com.blyznytsia.bring.context;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.blyznytsia.bring.context.constants.CreationMode;
 
-import com.blyznytsia.bring.context.services.BeanDefinitionProcessor;
+import java.util.List;
 
 public class BeanDefinition {
     private String className;
     private String scope;
-    private String creationMode; // multiple-parameters constructor, circular dependency, multiple impl of same interface, constructor, setter, reflection,  ? not sure if necessary - maybe factory will detect it
-    private List<String> dependsOn;
+    private List<CreationMode> creationModes; // multiple-parameters constructor, circular dependency, multiple impl of same interface, constructor, setter, reflection,  ? not sure if necessary - maybe factory will detect it
+    private List<String> dependsOnFields;
+    private List<String> dependsOnSetters;
 
     public String getClassName() {
         return className;
@@ -27,19 +27,27 @@ public class BeanDefinition {
         this.scope = scope;
     }
 
-    public List<String> getDependsOn() {
-        return dependsOn;
+    public List<CreationMode> getCreationModes() {
+        return creationModes;
     }
 
-    public String getCreationMode() {
-        return creationMode;
+    public void setCreationModes(List<CreationMode> creationMode) {
+        this.creationModes = creationMode;
     }
 
-    public void setCreationMode(String creationMode) {
-        this.creationMode = creationMode;
+    public List<String> getDependsOnFields() {
+        return dependsOnFields;
     }
 
-    public void setDependsOn(ArrayList<String> dependsOn) {
-        this.dependsOn = dependsOn;
+    public void setDependsOnFields(List<String> dependsOnFields) {
+        this.dependsOnFields = dependsOnFields;
+    }
+
+    public List<String> getDependsOnSetters() {
+        return dependsOnSetters;
+    }
+
+    public void setDependsOnSetters(List<String> dependsOnSetters) {
+        this.dependsOnSetters = dependsOnSetters;
     }
 }

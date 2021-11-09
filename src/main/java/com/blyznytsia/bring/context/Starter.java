@@ -8,7 +8,7 @@ public class Starter {
     public static ApplicationContext run(String packageToScan) {
         var applicationContext = new ApplicationContext();
 
-        var beanFactory = new BeanFactoryImpl(applicationContext);
+//        var beanFactory = new BeanFactoryImpl(applicationContext);
 
         // create BeanFactory by passing th context to it
 

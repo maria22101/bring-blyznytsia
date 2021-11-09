@@ -5,18 +5,17 @@ import com.blyznytsia.bring.context.BeanDefinitionRegistry;
 import com.blyznytsia.bring.context.annotation.Autowired;
 import com.blyznytsia.bring.context.annotation.Component;
 import com.blyznytsia.bring.context.annotation.ComponentScan;
+import com.blyznytsia.bring.context.constants.CreationMode;
 import com.blyznytsia.bring.context.services.BeanDefinitionProcessor;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Class scans packages indicated in @ComponentScan annotation,
@@ -47,14 +46,26 @@ public class AnnotationBeanDefinitionProcessor implements BeanDefinitionProcesso
     private void registerBeanDefinitionAutowired(BeanDefinitionRegistry registry, Class<?> type) {
         var beanDefinition = new BeanDefinition();
         beanDefinition.setClassName(type.getName());
-        var dependsOn = new ArrayList<String>();
+
+        var creationModeFields = new ArrayList<CreationMode>();
 
         var dependsOnFields = registerBeanDefinitionAutowiredFields(type);
+        if(!dependsOnFields.isEmpty()){
+            creationModeFields.add(CreationMode.FIELD);
+        }
         var dependsOnSetters = registerBeanDefinitionAutowiredMethods(type);
+        if(!dependsOnSetters.isEmpty()){
+            creationModeFields.add(CreationMode.SETTER);
+        }
 
-        dependsOn.addAll(dependsOnFields);
-        dependsOn.addAll(dependsOnSetters);
-        beanDefinition.setDependsOn(dependsOn);
+        if(dependsOnFields.isEmpty() && dependsOnSetters.isEmpty()){
+            creationModeFields.add(CreationMode.EMPTY_CONSTRUCTOR);
+        }
+
+        beanDefinition.setDependsOnFields(dependsOnFields);
+        beanDefinition.setDependsOnSetters(dependsOnSetters);
+
+        beanDefinition.setCreationModes(creationModeFields);
         registry.registerBeanDefinition(type.getName(), beanDefinition);
     }
 
