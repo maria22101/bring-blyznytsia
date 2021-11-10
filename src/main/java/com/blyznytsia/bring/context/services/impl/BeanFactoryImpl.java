@@ -7,30 +7,20 @@ import com.blyznytsia.bring.context.constants.CreationMode;
 import com.blyznytsia.bring.context.services.BeanFactory;
 import lombok.SneakyThrows;
 
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 
 public class BeanFactoryImpl implements BeanFactory {
-//    private ApplicationContext context; //???
-//    @Setter
-//    BeanDefinitionRegistry beanDefinitionRegistry;
-
-//    public BeanFactoryImpl(Map<String, BeanDefinition> beanDefinitionMap) {
-//        this.beanDefinitionMap = beanDefinitionMap;
-//    }
-
-//
-//    public BeanFactoryImpl(ApplicationContext context) {
-//        this.context = context;
-//    }
 
     @SneakyThrows
-    public Object create(BeanDefinition beanDefinition, BeanDefinitionRegistry beanDefinitionRegistry, Map<String, Object> beanMap) {
+    public Object createBean(BeanDefinition beanDefinition, BeanDefinitionRegistry beanDefinitionRegistry, Map<String, Object> beanMap) {
         beanDefinition.getDependsOnFields().forEach(typeName -> {
             if (!beanMap.containsKey(typeName)) {
                 var childBeanDefinition = beanDefinitionRegistry.getBeanDefinition(typeName);
                 if (childBeanDefinition != null) {
-                    create(childBeanDefinition, beanDefinitionRegistry, beanMap);
+                    createBean(childBeanDefinition, beanDefinitionRegistry, beanMap);
                 } else {
 //                    throw new NotFoundException("Can`t found bean definition for type " + typeName);
                 }
@@ -41,7 +31,7 @@ public class BeanFactoryImpl implements BeanFactory {
             if (!beanMap.containsKey(typeName)) {
                 var childBeanDefinition = beanDefinitionRegistry.getBeanDefinition(typeName);
                 if (childBeanDefinition != null) {
-                    create(childBeanDefinition, beanDefinitionRegistry, beanMap);
+                    createBean(childBeanDefinition, beanDefinitionRegistry, beanMap);
                 } else {
 //                    throw new NotFoundException("Can`t found bean definition for type " + typeName);
                 }
@@ -65,14 +55,28 @@ public class BeanFactoryImpl implements BeanFactory {
 //                            throw new Exception("Unable to set @Autowired field");
                         }
                     });
+            beanMap.put(beanDefinition.getClassName(), instance);
+        }
 
-//            Arrays.stream(instance.getClass().getDeclaredFields())
-//                    .filter(f -> f.isAnnotationPresent(Autowired.class)).forEach(type -> {
+        if (beanDefinition.getCreationModes().contains(CreationMode.SETTER)) {
+            var beanClass = Class.forName(beanDefinition.getClassName());
+            var constructor = beanClass.getDeclaredConstructor();
+            if (constructor == null) {
+                throw new Exception("Unable to find constructor");
+            }
+
+            var instance = constructor.newInstance();
+//            Arrays.stream(instance.getClass().getDeclaredMethods())
+//                    .filter(f -> f.isAnnotationPresent(Autowired.class))
+//                    .map(method -> Arrays.stream(method.getParameterTypes()).findFirst())
+//                    .flatMap(Optional::stream)
+//                    .forEach(type -> {
+//
 //                        type.setAccessible(true);
 //                        try {
 //                            type.set(instance, beanMap.get(type.getType().getTypeName()));
 //                        } catch (IllegalAccessException e) {
-//                            throw new Exception("Unable to set @Autowired field");
+////                            throw new Exception("Unable to set @Autowired field");
 //                        }
 //                    });
             beanMap.put(beanDefinition.getClassName(), instance);

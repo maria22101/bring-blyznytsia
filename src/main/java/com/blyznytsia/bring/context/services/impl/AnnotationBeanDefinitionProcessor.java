@@ -49,11 +49,11 @@ public class AnnotationBeanDefinitionProcessor implements BeanDefinitionProcesso
 
         var creationModeFields = new ArrayList<CreationMode>();
 
-        var dependsOnFields = registerBeanDefinitionAutowiredFields(type);
+        var dependsOnFields = scanForBeanDefinitionAutowiredFields(type);
         if(!dependsOnFields.isEmpty()){
             creationModeFields.add(CreationMode.FIELD);
         }
-        var dependsOnSetters = registerBeanDefinitionAutowiredMethods(type);
+        var dependsOnSetters = scanBeanDefinitionAutowiredMethods(type);
         if(!dependsOnSetters.isEmpty()){
             creationModeFields.add(CreationMode.SETTER);
         }
@@ -70,7 +70,7 @@ public class AnnotationBeanDefinitionProcessor implements BeanDefinitionProcesso
     }
 
     // processor for Autowiring fields
-    private List<String> registerBeanDefinitionAutowiredFields(Class<?> type) {
+    private List<String> scanForBeanDefinitionAutowiredFields(Class<?> type) {
         return Arrays.stream(type.getDeclaredFields())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
                 .map(Field::getType)
@@ -80,7 +80,7 @@ public class AnnotationBeanDefinitionProcessor implements BeanDefinitionProcesso
 
     // processor for Autowiring methods(setters)
     //TODO: process exception if there are two method parameters
-    private List<String> registerBeanDefinitionAutowiredMethods(Class<?> type) {
+    private List<String> scanBeanDefinitionAutowiredMethods(Class<?> type) {
         return Arrays.stream(type.getDeclaredMethods())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
                 .map(method -> Arrays.stream(method.getParameterTypes()).findFirst())
@@ -88,10 +88,4 @@ public class AnnotationBeanDefinitionProcessor implements BeanDefinitionProcesso
                 .map(Type::getTypeName)
                 .collect(Collectors.toList());
     }
-
-
-
-    // TODO: processing for creation via constructor
-
-    // TODO: processing for constructing via Autowired constructor and final fields
 }
