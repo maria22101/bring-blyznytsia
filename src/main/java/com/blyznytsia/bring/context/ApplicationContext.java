@@ -1,17 +1,17 @@
 package com.blyznytsia.bring.context;
 
-import com.blyznytsia.bring.context.annotation.Configuration;
-import com.blyznytsia.bring.context.services.impl.AnnotationBeanDefinitionProcessor;
-import com.blyznytsia.bring.context.services.impl.BeanFactoryImpl;
-import lombok.SneakyThrows;
-import org.reflections.Reflections;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class ApplicationContext extends BeanFactoryImpl {
+import org.reflections.Reflections;
+
+import com.blyznytsia.bring.context.annotation.Configuration;
+
+import lombok.SneakyThrows;
+
+public class ApplicationContext extends BeanFactory {
 
     private BeanDefinitionRegistry beanDefinitionRegistry = new BeanDefinitionRegistry();
     private Map<String, Object> beanMap = new HashMap<>();
@@ -30,15 +30,16 @@ public class ApplicationContext extends BeanFactoryImpl {
                 })
                 .map(Package::getName).collect(Collectors.toList());
 
-        var annotationBeanProcessor = new AnnotationBeanDefinitionProcessor();
-        annotationBeanProcessor.process(packagesWithConfiguration, beanDefinitionRegistry);
+        var scanner = new Scanner();
+        scanner.scan(packagesWithConfiguration, beanDefinitionRegistry);
 
         traverseBeanDefinitionRegistryAndFillBeanMap();
     }
 
     private void traverseBeanDefinitionRegistryAndFillBeanMap() {
         beanDefinitionRegistry.getBeanDefinitionMap().values()
-                .forEach(beanDefinition -> createBean(beanDefinition, beanDefinitionRegistry, beanMap));
+                .forEach(beanDefinition ->
+                        createBean(beanDefinition, beanDefinitionRegistry, beanMap));
     }
 
     public <T> T getBean(Class<T> type) {

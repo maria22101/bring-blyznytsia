@@ -1,12 +1,12 @@
-package com.blyznytsia.bring.context.services.impl;
+package com.blyznytsia.bring.context;
 
-import com.blyznytsia.bring.context.BeanDefinition;
-import com.blyznytsia.bring.context.BeanDefinitionRegistry;
 import com.blyznytsia.bring.context.annotation.Autowired;
 import com.blyznytsia.bring.context.annotation.Component;
 import com.blyznytsia.bring.context.annotation.ComponentScan;
-import com.blyznytsia.bring.context.constants.CreationMode;
-import com.blyznytsia.bring.context.services.BeanDefinitionProcessor;
+import com.blyznytsia.bring.context.services.BeanConfigurator;
+import com.blyznytsia.bring.context.services.impl.AutowiredFieldBeanConfigurator;
+import com.blyznytsia.bring.context.services.impl.AutowiredSetterBeanConfigurator;
+
 import org.reflections.Reflections;
 
 import java.lang.reflect.Field;
@@ -19,13 +19,14 @@ import java.util.stream.Collectors;
 
 /**
  * Class scans packages indicated in @ComponentScan annotation,
- * finds classes annotated with @Component and collects their @Autowired fields - these information
- * stored in BeanDefinitionRegistry's storage
+ * finds classes annotated with @Component and collects metadata relevant for further bean creation.
+ * These metadata is placed into BeanDefinition instances that are stored in
+ * BeanDefinitionRegistry's storage
  */
-public class AnnotationBeanDefinitionProcessor implements BeanDefinitionProcessor {
+public class Scanner {
 
-    @Override
-    public void process(List<String> packages, BeanDefinitionRegistry registry) {
+    //TODO: add posibility to scan multiple packages indicated in @ComponentScan property
+    public void scan(List<String> packages, BeanDefinitionRegistry registry) {
         packages.forEach(currentPackage -> {
             var reflections = new Reflections(currentPackage);
 
@@ -33,8 +34,8 @@ public class AnnotationBeanDefinitionProcessor implements BeanDefinitionProcesso
                     reflections.getTypesAnnotatedWith(ComponentScan.class);
 
             typesWithComponentScan.forEach(currentComponentScanClass -> {
-                var beanAnnotation = currentComponentScanClass.getAnnotation(ComponentScan.class);
-                var packageToScan = beanAnnotation.value();
+                var componentScanAnnotation = currentComponentScanClass.getAnnotation(ComponentScan.class);
+                var packageToScan = componentScanAnnotation.value();
 
                 var scanPackageReflections = new Reflections(packageToScan);
                 scanPackageReflections.getTypesAnnotatedWith(Component.class)
@@ -43,34 +44,33 @@ public class AnnotationBeanDefinitionProcessor implements BeanDefinitionProcesso
         });
     }
 
+    //TODO: check if interface -> if yes -> check that 1 impl class exist
+    //if not found / > than 1 implementations without qualifier(or primary) found => exception
+    //
+
+
     private void registerBeanDefinitionAutowired(BeanDefinitionRegistry registry, Class<?> type) {
+        var dependsOnFields = scanAutowiredFields(type);
+        var dependsOnFromSetters = scanAutowiredMethods(type);
+
+        var beanConfigurators = new ArrayList<BeanConfigurator>();
+        if(!dependsOnFields.isEmpty()){
+            beanConfigurators.add(new AutowiredFieldBeanConfigurator());
+        }
+        if(!dependsOnFromSetters.isEmpty()){
+            beanConfigurators.add(new AutowiredSetterBeanConfigurator());
+        }
+        dependsOnFields.addAll(dependsOnFromSetters);
+
         var beanDefinition = new BeanDefinition();
         beanDefinition.setClassName(type.getName());
-
-        var creationModeFields = new ArrayList<CreationMode>();
-
-        var dependsOnFields = scanForBeanDefinitionAutowiredFields(type);
-        if(!dependsOnFields.isEmpty()){
-            creationModeFields.add(CreationMode.FIELD);
-        }
-        var dependsOnSetters = scanBeanDefinitionAutowiredMethods(type);
-        if(!dependsOnSetters.isEmpty()){
-            creationModeFields.add(CreationMode.SETTER);
-        }
-
-        if(dependsOnFields.isEmpty() && dependsOnSetters.isEmpty()){
-            creationModeFields.add(CreationMode.EMPTY_CONSTRUCTOR);
-        }
-
         beanDefinition.setDependsOnFields(dependsOnFields);
-        beanDefinition.setDependsOnSetters(dependsOnSetters);
-
-        beanDefinition.setCreationModes(creationModeFields);
+        beanDefinition.setBeanConfigurators(beanConfigurators);
         registry.registerBeanDefinition(type.getName(), beanDefinition);
     }
 
     // processor for Autowiring fields
-    private List<String> scanForBeanDefinitionAutowiredFields(Class<?> type) {
+    private List<String> scanAutowiredFields(Class<?> type) {
         return Arrays.stream(type.getDeclaredFields())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
                 .map(Field::getType)
@@ -80,7 +80,7 @@ public class AnnotationBeanDefinitionProcessor implements BeanDefinitionProcesso
 
     // processor for Autowiring methods(setters)
     //TODO: process exception if there are two method parameters
-    private List<String> scanBeanDefinitionAutowiredMethods(Class<?> type) {
+    private List<String> scanAutowiredMethods(Class<?> type) {
         return Arrays.stream(type.getDeclaredMethods())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
                 .map(method -> Arrays.stream(method.getParameterTypes()).findFirst())
