@@ -7,21 +7,29 @@ import lombok.Getter;
 
 @Component
 @Getter
-public class Class3 {
+public class Class4 {
 
     Class1 class1;
+    Class2 class2;
+    Class3 class3;
 
     @Autowired
-    public void setClass1(Class1 class1) {
+    public Class4(Class1 class1, Class3 class3) {
         this.class1 = class1;
+        this.class3 = class3;
+    }
+
+    public void setClass2(Class2 class2) {
+        this.class2 = class2;
     }
 
     public void printName(){
-        System.out.println(Class3.class);
+        System.out.println(Class4.class);
     }
 
     public void printFields(){
-        System.out.println("--My fields autowired via setter: ");
+        System.out.println("--My fields injected via autowired constructor: ");
         class1.printName();
+        class3.printName();
     }
 }

@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 import org.reflections.Reflections;
 
 import com.blyznytsia.bring.context.annotation.Configuration;
+import com.blyznytsia.bring.context.services.impl.AutowiredConstructorBeanCreator;
+import com.blyznytsia.bring.context.services.impl.EmptyConstructorBeanCreator;
 
 import lombok.SneakyThrows;
 
@@ -38,6 +40,14 @@ public class ApplicationContext extends BeanFactory {
 
     private void traverseBeanDefinitionRegistryAndFillBeanMap() {
         beanDefinitionRegistry.getBeanDefinitionMap().values()
+                .stream()
+                .filter(beanDefinition -> beanDefinition.getBeanCreator() instanceof EmptyConstructorBeanCreator)
+                .forEach(beanDefinition ->
+                        createBean(beanDefinition, beanDefinitionRegistry, beanMap));
+
+        beanDefinitionRegistry.getBeanDefinitionMap().values()
+                .stream()
+                .filter(beanDefinition -> beanDefinition.getBeanCreator() instanceof AutowiredConstructorBeanCreator)
                 .forEach(beanDefinition ->
                         createBean(beanDefinition, beanDefinitionRegistry, beanMap));
     }

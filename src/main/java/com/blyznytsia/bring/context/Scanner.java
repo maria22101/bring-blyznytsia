@@ -1,14 +1,5 @@
 package com.blyznytsia.bring.context;
 
-import com.blyznytsia.bring.context.annotation.Autowired;
-import com.blyznytsia.bring.context.annotation.Component;
-import com.blyznytsia.bring.context.annotation.ComponentScan;
-import com.blyznytsia.bring.context.services.BeanConfigurator;
-import com.blyznytsia.bring.context.services.impl.AutowiredFieldBeanConfigurator;
-import com.blyznytsia.bring.context.services.impl.AutowiredSetterBeanConfigurator;
-
-import org.reflections.Reflections;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -16,6 +7,17 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.reflections.Reflections;
+
+import com.blyznytsia.bring.context.annotation.Autowired;
+import com.blyznytsia.bring.context.annotation.Component;
+import com.blyznytsia.bring.context.annotation.ComponentScan;
+import com.blyznytsia.bring.context.services.BeanConfigurator;
+import com.blyznytsia.bring.context.services.impl.AutowiredConstructorBeanCreator;
+import com.blyznytsia.bring.context.services.impl.AutowiredFieldBeanConfigurator;
+import com.blyznytsia.bring.context.services.impl.AutowiredSetterBeanConfigurator;
+import com.blyznytsia.bring.context.services.impl.EmptyConstructorBeanCreator;
 
 /**
  * Class scans packages indicated in @ComponentScan annotation,
@@ -39,7 +41,7 @@ public class Scanner {
 
                 var scanPackageReflections = new Reflections(packageToScan);
                 scanPackageReflections.getTypesAnnotatedWith(Component.class)
-                        .forEach(type -> registerBeanDefinitionAutowired(registry, type));
+                        .forEach(type -> registerBeanDefinition(registry, type));
             });
         });
     }
@@ -49,7 +51,7 @@ public class Scanner {
     //
 
 
-    private void registerBeanDefinitionAutowired(BeanDefinitionRegistry registry, Class<?> type) {
+    private void registerBeanDefinition(BeanDefinitionRegistry registry, Class<?> type) {
         var dependsOnFields = scanAutowiredFields(type);
         var dependsOnFromSetters = scanAutowiredMethods(type);
 
@@ -66,10 +68,13 @@ public class Scanner {
         beanDefinition.setClassName(type.getName());
         beanDefinition.setDependsOnFields(dependsOnFields);
         beanDefinition.setBeanConfigurators(beanConfigurators);
+
+        setUpBeanCreators(beanDefinition, type);
+
         registry.registerBeanDefinition(type.getName(), beanDefinition);
     }
 
-    // processor for Autowiring fields
+    // find Autowired fields
     private List<String> scanAutowiredFields(Class<?> type) {
         return Arrays.stream(type.getDeclaredFields())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
@@ -78,7 +83,7 @@ public class Scanner {
                 .collect(Collectors.toList());
     }
 
-    // processor for Autowiring methods(setters)
+    // find Autowired methods(setters)
     //TODO: process exception if there are two method parameters
     private List<String> scanAutowiredMethods(Class<?> type) {
         return Arrays.stream(type.getDeclaredMethods())
@@ -87,5 +92,25 @@ public class Scanner {
                 .flatMap(Optional::stream)
                 .map(Type::getTypeName)
                 .collect(Collectors.toList());
+    }
+
+    private void setUpBeanCreators(BeanDefinition beanDefinition,
+                                   Class<?> type) {
+        if(isDefaultConstructorPresent(type)) {
+            beanDefinition.setBeanCreator(new EmptyConstructorBeanCreator());
+        }
+        if(isSingleAutowiredConstructorPresent(type)) {
+            beanDefinition.setBeanCreator(new AutowiredConstructorBeanCreator());
+        }
+    }
+
+    private boolean isDefaultConstructorPresent(Class<?> type) {
+        return type.getConstructors()[0].getParameterCount() == 0;
+    }
+
+    private boolean isSingleAutowiredConstructorPresent(Class<?> type) {
+        return Arrays.stream(type.getConstructors())
+                .filter(constructor -> constructor.isAnnotationPresent(Autowired.class))
+                .count() == 1;
     }
 }
