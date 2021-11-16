@@ -3,8 +3,6 @@ package com.blyznytsia.bring.demo.classes;
 import com.blyznytsia.bring.context.annotation.Autowired;
 import com.blyznytsia.bring.context.annotation.Component;
 
-import lombok.Getter;
-
 @Component
 public class Class2 {
 
@@ -17,6 +15,11 @@ public class Class2 {
 
     public void printName(){
         System.out.println(Class2.class);
+    }
+
+    public void printFields(){
+        System.out.println("--My autowired fields: ");
+        class3.printName();
     }
 
 }

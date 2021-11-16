@@ -9,43 +9,32 @@ import lombok.SneakyThrows;
 public class BeanFactory {
 
     @SneakyThrows
-    public Object createBean(BeanDefinition beanDefinition,
+    public void createBean(BeanDefinition beanDefinition,
                            BeanDefinitionRegistry beanDefinitionRegistry,
                            Map<String, Object> beanMap) {
 
         // recursion
-        beanDefinition.getDependsOnFields().forEach(typeName -> {
-            if (!beanMap.containsKey(typeName)) {
-                var childBeanDefinition = beanDefinitionRegistry.getBeanDefinition(typeName);
+        beanDefinition.getDependsOnFields().forEach(dependsOnField -> {
+            if (!beanMap.containsKey(dependsOnField)) {
+                var childBeanDefinition = beanDefinitionRegistry.getBeanDefinition(dependsOnField);
                 if (childBeanDefinition != null) {
                     createBean(childBeanDefinition, beanDefinitionRegistry, beanMap);
                 } else {
-                    throw new BeanCreationException("Can`t find bean definition for type " + typeName);
+                    throw new BeanCreationException("Can`t find bean definition for type " + dependsOnField);
                 }
             }
         });
 
-        // get initial bean created using empty constructor:
-        var beanDefinitionInitialBean = getInitialBean(beanDefinition.getClassName());
-        beanMap.put(beanDefinition.getClassName(), beanDefinitionInitialBean);
+        var targetClassName = beanDefinition.getClassName();
 
-        // set up the bean depending on what is to configure:
-        beanDefinition.getBeanConfigurators().forEach(configurator -> {
-            // if interface -> 1/ get implementation or 2/choose implementation according to @Qualifier/@Primary
-            Object o = configurator.configure(beanDefinitionInitialBean, beanMap);
-            beanMap.put(beanDefinition.getClassName(), o);
+        beanDefinition.getBeanCreator().create(targetClassName, beanMap);
+
+        // set up the bean using configurator(s):
+        beanMap.computeIfPresent(targetClassName, (className, existingBean) -> {
+            // TODO: if interface -> 1/ get implementation or 2/choose implementation according to @Qualifier/@Primary
+
+            beanDefinition.getBeanConfigurators().forEach(configurator -> configurator.configure(existingBean, beanMap));
+            return existingBean;
         });
-
-        return null;
-    }
-
-    @SneakyThrows
-    private Object getInitialBean(String typeName) {
-        var beanClass = Class.forName(typeName);
-        var constructor = beanClass.getDeclaredConstructor();
-        if (constructor == null) {
-            throw new BeanCreationException("Unable to find empty constructor");
-        }
-        return constructor.newInstance();
     }
 }

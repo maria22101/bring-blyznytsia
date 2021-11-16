@@ -1,8 +1,9 @@
 package com.blyznytsia.bring.context;
 
-import com.blyznytsia.bring.context.services.BeanConfigurator;
-
 import java.util.List;
+
+import com.blyznytsia.bring.context.services.BeanConfigurator;
+import com.blyznytsia.bring.context.services.BeanCreator;
 
 import lombok.Data;
 
@@ -10,6 +11,7 @@ import lombok.Data;
 public class BeanDefinition {
     private String className;
     private String scope;
-    private List<BeanConfigurator> beanConfigurators; // BeanConfigurator responsible for different object creation modes: fields autowiring, different constructors, multiple impl of same interface
+    private List<BeanConfigurator> beanConfigurators; // responsible for configuring already created bean: fields autowiring, fields autowiring via setter ...
+    private BeanCreator beanCreator; //responsible for creation modes
     private List<String> dependsOnFields;
 }

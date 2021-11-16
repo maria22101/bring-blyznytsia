@@ -1,10 +1,10 @@
 package com.blyznytsia.bring.context;
 
-import javassist.NotFoundException;
-import lombok.SneakyThrows;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javassist.NotFoundException;
+import lombok.SneakyThrows;
 
 public class BeanDefinitionRegistry {
     private final Map<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
