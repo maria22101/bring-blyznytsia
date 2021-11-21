@@ -13,11 +13,13 @@ import org.reflections.Reflections;
 import com.blyznytsia.bring.context.annotation.Autowired;
 import com.blyznytsia.bring.context.annotation.Component;
 import com.blyznytsia.bring.context.annotation.ComponentScan;
+import com.blyznytsia.bring.context.exceptions.BeanCreationException;
 import com.blyznytsia.bring.context.services.BeanConfigurator;
 import com.blyznytsia.bring.context.services.impl.AutowiredConstructorBeanCreator;
 import com.blyznytsia.bring.context.services.impl.AutowiredFieldBeanConfigurator;
 import com.blyznytsia.bring.context.services.impl.AutowiredSetterBeanConfigurator;
 import com.blyznytsia.bring.context.services.impl.EmptyConstructorBeanCreator;
+import com.blyznytsia.bring.context.util.AutowiredConstructorHelper;
 
 /**
  * Class scans packages indicated in @ComponentScan annotation,
@@ -98,10 +100,15 @@ public class Scanner {
                                    Class<?> type) {
         if(isDefaultConstructorPresent(type)) {
             beanDefinition.setBeanCreator(new EmptyConstructorBeanCreator());
+            return;
         }
         if(isSingleAutowiredConstructorPresent(type)) {
             beanDefinition.setBeanCreator(new AutowiredConstructorBeanCreator());
+            AutowiredConstructorHelper.validateAndSetUpDependsOnFields(beanDefinition);
+            return;
         }
+        throw new BeanCreationException(String.format(
+                "Context creation error: no Default or Autowired constructor found for bean %s", type.getName()));
     }
 
     private boolean isDefaultConstructorPresent(Class<?> type) {
