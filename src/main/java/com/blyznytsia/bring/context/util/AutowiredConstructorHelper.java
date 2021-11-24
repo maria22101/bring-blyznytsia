@@ -27,8 +27,6 @@ public class AutowiredConstructorHelper {
                         checkRelevantFieldExistenceAndCollectParamType(
                                 targetClass, constructorParamType, dependsOnFields));
 
-        validateConstructorParams(targetClass, dependsOnFields);
-
         beanDefinition.setDependsOnFields(dependsOnFields);
     }
 
@@ -38,19 +36,9 @@ public class AutowiredConstructorHelper {
         Arrays.stream(targetClass.getDeclaredFields())
                 .filter(field -> field.getType().equals(constructorParamType))
                 .findFirst()
-                .ifPresent(field -> dependsOnFields.add(field.getType().getName()));
-    }
-
-    private static void validateConstructorParams(Class<?> targetClass,
-                                                  List<String> paramTypesList) {
-        long constructorParamsCount = Arrays.stream(targetClass.getConstructors())
-                .filter(constructor -> constructor.isAnnotationPresent(Autowired.class))
-                .findFirst()
-                .get().getParameterCount();
-
-        if (paramTypesList.size() != constructorParamsCount) {
-            throw new AmbiguousAutowiredConstructorParamsException(
-                    "Autowired constructor parameters must have correspondent class fields");
-        }
+                .ifPresentOrElse(field -> dependsOnFields.add(field.getType().getName()), () -> {
+                    throw new AmbiguousAutowiredConstructorParamsException(String.format(
+                        "%s: Autowired constructor parameters must have correspondent class fields", targetClass));
+                });
     }
 }
