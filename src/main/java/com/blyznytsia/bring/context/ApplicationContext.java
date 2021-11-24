@@ -8,8 +8,6 @@ import java.util.stream.Collectors;
 import org.reflections.Reflections;
 
 import com.blyznytsia.bring.context.annotation.Configuration;
-import com.blyznytsia.bring.context.services.impl.AutowiredConstructorBeanCreator;
-import com.blyznytsia.bring.context.services.impl.EmptyConstructorBeanCreator;
 
 import lombok.SneakyThrows;
 
@@ -35,21 +33,7 @@ public class ApplicationContext extends BeanFactory {
         var scanner = new Scanner();
         scanner.scan(packagesWithConfiguration, beanDefinitionRegistry);
 
-        traverseBeanDefinitionRegistryAndFillBeanMap();
-    }
-
-    private void traverseBeanDefinitionRegistryAndFillBeanMap() {
-        beanDefinitionRegistry.getBeanDefinitionMap().values()
-                .stream()
-                .filter(beanDefinition -> beanDefinition.getBeanCreator() instanceof EmptyConstructorBeanCreator)
-                .forEach(beanDefinition ->
-                        createBean(beanDefinition, beanDefinitionRegistry, beanMap));
-
-        beanDefinitionRegistry.getBeanDefinitionMap().values()
-                .stream()
-                .filter(beanDefinition -> beanDefinition.getBeanCreator() instanceof AutowiredConstructorBeanCreator)
-                .forEach(beanDefinition ->
-                        createBean(beanDefinition, beanDefinitionRegistry, beanMap));
+        traverseBeanDefinitionRegistryAndFillBeanMap(beanDefinitionRegistry, beanMap);
     }
 
     public <T> T getBean(Class<T> type) {

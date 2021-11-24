@@ -5,6 +5,7 @@ import com.blyznytsia.bring.demo.classes.Class1;
 import com.blyznytsia.bring.demo.classes.Class2;
 import com.blyznytsia.bring.demo.classes.Class3;
 import com.blyznytsia.bring.demo.classes.Class4;
+import com.blyznytsia.bring.demo.classes.Class5;
 
 public class DemoApp {
     public static void main(String[] args) {
@@ -14,6 +15,7 @@ public class DemoApp {
         var class2 = context.getBean(Class2.class);
         var class3 = context.getBean(Class3.class);
         var class4 = context.getBean(Class4.class);
+        var class5 = context.getBean(Class5.class);
 
         // beans creation check:
         System.out.println(" -----beans created: ");
@@ -21,6 +23,7 @@ public class DemoApp {
         class2.printName();
         class3.printName();
         class4.printName();
+        class5.printName();
 
         System.out.println();
 
@@ -37,5 +40,10 @@ public class DemoApp {
 
         System.out.println(" -----Class4 (with fields Class1, Class3 injected via autowired constructor): ");
         class4.printFields();
+
+        System.out.println();
+
+        System.out.println(" -----Class5 (with fields Class1, Class2, Class3, Class4 injected via autowired constructor): ");
+        class5.printFields();
     }
 }
