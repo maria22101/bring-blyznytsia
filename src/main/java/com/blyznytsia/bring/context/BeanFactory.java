@@ -1,6 +1,8 @@
 package com.blyznytsia.bring.context;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.blyznytsia.bring.context.constants.BeanStatus;
 import com.blyznytsia.bring.context.exceptions.CircularDependencyException;
@@ -20,19 +22,35 @@ public class BeanFactory {
 
     private void createBeansWithoutDependsOnFields(BeanDefinitionRegistry beanDefinitionRegistry,
                                                    Map<String, Object> beanMap) {
-        beanDefinitionRegistry.getBeanDefinitionMap().values().stream()
+        List<BeanDefinition> beanDefinitionsForCreatingBeans = beanDefinitionRegistry.getBeanDefinitionMap().values()
+                .stream()
                 .filter(this::isBeanWithoutDependsOnFields)
-                .forEach(beanDefinition -> createBeanWithoutDependsOnFields(beanDefinition, beanMap));
+                .collect(Collectors.toList());
+
+        beanDefinitionsForCreatingBeans
+                .forEach(beanDefinition -> {
+                    beanDefinition.getBeanCreator().create(beanDefinition.getClassName(), beanMap);
+                    beanDefinition.setStatus(BeanStatus.CREATED);
+                });
     }
 
     private void createBeansWithDependsOnFields(BeanDefinitionRegistry beanDefinitionRegistry,
                                                 Map<String, Object> beanMap) {
-        while (beansCreationNotCompleted(beanDefinitionRegistry) &&
+        while (beanMapNotReady(beanDefinitionRegistry) &&
                 atLeastOneBeanCreationIsPossible(beanDefinitionRegistry, beanMap)) {
 
-            beanDefinitionRegistry.getBeanDefinitionMap().values().stream()
+            List<BeanDefinition> beanDefinitionsForCreatingBeans =
+                    beanDefinitionRegistry.getBeanDefinitionMap().values().stream()
                     .filter(beanDefinition -> isBeanCreationRequiredAndPossible(beanDefinition, beanMap))
-                    .forEach(beanDefinition -> createAndConfigureBean(beanDefinition, beanMap));
+                            .collect(Collectors.toList());
+
+            beanDefinitionsForCreatingBeans
+                    .forEach(beanDefinition -> {
+                        Object initialBean = beanDefinition.getBeanCreator().create(beanDefinition.getClassName(), beanMap);
+                        beanDefinition.getBeanConfigurators().forEach(
+                                configurator -> configurator.configure(initialBean, beanDefinition, beanMap));
+                        beanDefinition.setStatus(BeanStatus.CREATED);
+                    });
         }
     }
 
@@ -40,13 +58,7 @@ public class BeanFactory {
         return beanDefinition.getDependsOnFields().isEmpty();
     }
 
-    private void createBeanWithoutDependsOnFields(BeanDefinition beanDefinition,
-                                                  Map<String, Object> beanMap) {
-        beanDefinition.getBeanCreator().create(beanDefinition.getClassName(), beanMap);
-        beanDefinition.setStatus(BeanStatus.CREATED);
-    }
-
-    private boolean beansCreationNotCompleted(BeanDefinitionRegistry beanDefinitionRegistry) {
+    private boolean beanMapNotReady(BeanDefinitionRegistry beanDefinitionRegistry) {
         return beanDefinitionRegistry.getBeanDefinitionMap().values().stream()
                 .anyMatch(beanDefinition -> beanDefinition.getStatus().equals(BeanStatus.INITIALIZING));
     }
@@ -69,17 +81,10 @@ public class BeanFactory {
                 .allMatch(beanMap::containsKey);
     }
 
-    private void createAndConfigureBean(BeanDefinition beanDefinition,
-                                        Map<String, Object> beanMap) {
-        Object initialBean = beanDefinition.getBeanCreator().create(beanDefinition.getClassName(), beanMap);
-        beanDefinition.getBeanConfigurators().forEach(
-                configurator -> configurator.configure(initialBean, beanMap));
-        beanDefinition.setStatus(BeanStatus.CREATED);
-    }
-
+    // Simple circular dependency notifier: case when A -> B and B -> A
     private void notifyAboutCircularDependency(BeanDefinitionRegistry beanDefinitionRegistry,
                                                Map<String, Object> beanMap) {
-        if (beansCreationNotCompleted(beanDefinitionRegistry)) {
+        if (beanMapNotReady(beanDefinitionRegistry)) {
 
             beanDefinitionRegistry.getBeanDefinitionMap().values().stream()
                     .filter(beanDefinition ->
@@ -116,5 +121,13 @@ public class BeanFactory {
                                                      BeanDefinitionRegistry beanDefinitionRegistry) {
         return beanDefinitionRegistry.getBeanDefinition(dependsOnField).getDependsOnFields()
                 .contains(beanDefinition.getClassName());
+    }
+
+    // TODO: implement extended circular dependency notifier
+    // case when A -> B, B -> C ... X -> A
+    private void notifyAboutCircularDependencyExtended(BeanDefinition start,
+                                                       BeanDefinition current) {
+
+        //traverseDependsOnsAndGetTracePath
     }
 }
