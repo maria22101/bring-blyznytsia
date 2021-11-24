@@ -1,11 +1,11 @@
 package com.blyznytsia.bring.context;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.reflections.Reflections;
@@ -14,12 +14,14 @@ import com.blyznytsia.bring.context.annotation.Autowired;
 import com.blyznytsia.bring.context.annotation.Component;
 import com.blyznytsia.bring.context.annotation.ComponentScan;
 import com.blyznytsia.bring.context.exceptions.BeanCreationException;
+import com.blyznytsia.bring.context.exceptions.InterfaceAnnotationException;
 import com.blyznytsia.bring.context.services.BeanConfigurator;
 import com.blyznytsia.bring.context.services.impl.AutowiredConstructorBeanCreator;
 import com.blyznytsia.bring.context.services.impl.AutowiredFieldBeanConfigurator;
 import com.blyznytsia.bring.context.services.impl.AutowiredSetterBeanConfigurator;
 import com.blyznytsia.bring.context.services.impl.EmptyConstructorBeanCreator;
 import com.blyznytsia.bring.context.util.AutowiredConstructorHelper;
+import com.blyznytsia.bring.context.util.InterfaceAnalyzer;
 
 /**
  * Class scans packages indicated in @ComponentScan annotation,
@@ -42,19 +44,27 @@ public class Scanner {
                 var packageToScan = componentScanAnnotation.value();
 
                 var scanPackageReflections = new Reflections(packageToScan);
-                scanPackageReflections.getTypesAnnotatedWith(Component.class)
-                        .forEach(type -> registerBeanDefinition(registry, type));
+                var classesAnnotatedWithComponent = scanPackageReflections.getTypesAnnotatedWith(Component.class);
+                classesAnnotatedWithComponent
+                        .forEach(type -> {
+                            rejectInterfaceAnnotatedWithComponent(type);
+                            registerBeanDefinition(registry, type, classesAnnotatedWithComponent);
+                        });
             });
         });
     }
 
-    //TODO: check if interface -> if yes -> check that 1 impl class exist
-    //if not found / > than 1 implementations without qualifier(or primary) found => exception
-    //
+    private void rejectInterfaceAnnotatedWithComponent(Class<?> type) {
+        if(type.isInterface()) {
+            throw new InterfaceAnnotationException(String.format(
+                    "%s can not be annotated as Component", type));
+        }
+    }
 
+    private void registerBeanDefinition(BeanDefinitionRegistry registry, Class<?> type,
+                                        Set<Class<?>> classesAnnotatedWithComponent) {
 
-    private void registerBeanDefinition(BeanDefinitionRegistry registry, Class<?> type) {
-        var dependsOnFields = scanAutowiredFields(type);
+        var dependsOnFields = scanAutowiredFields(type, classesAnnotatedWithComponent);
         var dependsOnFromSetters = scanAutowiredMethods(type);
 
         var beanConfigurators = new ArrayList<BeanConfigurator>();
@@ -76,12 +86,12 @@ public class Scanner {
         registry.registerBeanDefinition(type.getName(), beanDefinition);
     }
 
-    // find Autowired fields
-    private List<String> scanAutowiredFields(Class<?> type) {
-        return Arrays.stream(type.getDeclaredFields())
-                .filter(f -> f.isAnnotationPresent(Autowired.class))
-                .map(Field::getType)
-                .map(Type::getTypeName)
+    // find Autowired fields, if they are Interface type -> define implementation
+    private List<String> scanAutowiredFields(Class<?> targetClass,
+                                             Set<Class<?>> classesAnnotatedWithComponent) {
+        return Arrays.stream(targetClass.getDeclaredFields())
+                .filter(field -> field.isAnnotationPresent(Autowired.class))
+                .map(field -> InterfaceAnalyzer.getImplementation(targetClass, field, classesAnnotatedWithComponent))
                 .collect(Collectors.toList());
     }
 

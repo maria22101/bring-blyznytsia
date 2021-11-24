@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 
+import com.blyznytsia.bring.context.BeanDefinition;
 import com.blyznytsia.bring.context.annotation.Autowired;
 import com.blyznytsia.bring.context.exceptions.BeanCreationException;
 import com.blyznytsia.bring.context.services.BeanConfigurator;
@@ -15,7 +16,7 @@ public class AutowiredSetterBeanConfigurator implements BeanConfigurator {
 
     @Override
     @SneakyThrows
-    public Object configure(Object objectToConfigure, Map<String, Object> beanMap) {
+    public Object configure(Object objectToConfigure, BeanDefinition beanDefinition, Map<String, Object> beanMap) {
 
         Arrays.stream(objectToConfigure.getClass().getDeclaredMethods())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
