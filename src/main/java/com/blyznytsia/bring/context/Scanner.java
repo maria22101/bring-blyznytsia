@@ -1,19 +1,23 @@
 package com.blyznytsia.bring.context;
 
+import static java.util.stream.Collectors.toList;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.reflections.Reflections;
 
 import com.blyznytsia.bring.context.annotation.Autowired;
+import com.blyznytsia.bring.context.annotation.Bean;
 import com.blyznytsia.bring.context.annotation.Component;
 import com.blyznytsia.bring.context.annotation.ComponentScan;
+import com.blyznytsia.bring.context.annotation.Configuration;
 import com.blyznytsia.bring.context.exceptions.BeanCreationException;
+import com.blyznytsia.bring.context.exceptions.ConfigurationInsufficientException;
 import com.blyznytsia.bring.context.exceptions.InterfaceAnnotationException;
 import com.blyznytsia.bring.context.services.BeanConfigurator;
 import com.blyznytsia.bring.context.services.impl.AutowiredConstructorBeanCreator;
@@ -24,38 +28,60 @@ import com.blyznytsia.bring.context.util.AutowiredConstructorHelper;
 import com.blyznytsia.bring.context.util.InterfaceAnalyzer;
 
 /**
- * Class scans packages indicated in @ComponentScan annotation,
- * finds classes annotated with @Component and collects metadata relevant for further bean creation.
+ * Class scans packages that contain classes annotated with @Configuration, finds those classes,
+ * reads @ComponentScan annotations value - for getting packages which are scanned
+ * for classes annotated with @Component - which metadata are collected for further beans creation.
  * These metadata is placed into BeanDefinition instances that are stored in
  * BeanDefinitionRegistry's storage
  */
 public class Scanner {
 
-    //TODO: add posibility to scan multiple packages indicated in @ComponentScan property
-    public void scan(List<String> packages, BeanDefinitionRegistry registry) {
-        packages.forEach(currentPackage -> {
-            var reflections = new Reflections(currentPackage);
+    public void scan(List<String> packagesContainingConfigClasses, BeanDefinitionRegistry registry) {
+        packagesContainingConfigClasses
+                .forEach(packageContainingConfigClasses -> {
+                    var reflections = new Reflections(packageContainingConfigClasses);
+                    var configClasses = reflections.getTypesAnnotatedWith(Configuration.class);
+                    configClasses
+                            .forEach(configClass ->
+                                    scanConfigClassAndCreateBeanDefinitions(configClass, registry));
+                });
+    }
 
-            var typesWithComponentScan =
-                    reflections.getTypesAnnotatedWith(ComponentScan.class);
+    private void scanConfigClassAndCreateBeanDefinitions(Class<?> configClass,
+                                                         BeanDefinitionRegistry registry) {
+        boolean isConfigClassWithComponentScan = configClass.isAnnotationPresent(ComponentScan.class);
+        boolean isConfigClassWithBeans = Arrays.stream(configClass.getMethods())
+                .anyMatch(method -> method.isAnnotationPresent(Bean.class));
 
-            typesWithComponentScan.forEach(currentComponentScanClass -> {
-                var componentScanAnnotation = currentComponentScanClass.getAnnotation(ComponentScan.class);
-                var packageToScan = componentScanAnnotation.value();
+        if (isConfigClassWithComponentScan) {
+            var packagesFromComponentScan = configClass.getAnnotation(ComponentScan.class).value();
+            Arrays.stream(packagesFromComponentScan)
+                    .forEach(packageFromComponentScan ->
+                            scanPackageAndCreateBeanDefinitions(packageFromComponentScan, registry));
+        }
 
-                var scanPackageReflections = new Reflections(packageToScan);
-                var classesAnnotatedWithComponent = scanPackageReflections.getTypesAnnotatedWith(Component.class);
-                classesAnnotatedWithComponent
-                        .forEach(type -> {
-                            rejectInterfaceAnnotatedWithComponent(type);
-                            registerBeanDefinition(registry, type, classesAnnotatedWithComponent);
-                        });
-            });
+        if (isConfigClassWithBeans) {
+            //TODO: implement creating BeanDefinition from @Bean annotation
+        }
+
+        if (!isConfigClassWithComponentScan && !isConfigClassWithBeans) {
+            throw new ConfigurationInsufficientException(String.format(
+                    "No @ComponentScan or @Bean annotations found in %s", configClass.getName()));
+        }
+    }
+
+    private void scanPackageAndCreateBeanDefinitions(String packageFromComponentScan,
+                                                     BeanDefinitionRegistry registry) {
+        var reflection = new Reflections(packageFromComponentScan);
+        var classesAnnotatedWithComponent = reflection.getTypesAnnotatedWith(Component.class);
+        classesAnnotatedWithComponent.forEach(type -> {
+            rejectInterfaceAnnotatedWithComponent(type);
+            registerBeanDefinition(registry, type, classesAnnotatedWithComponent);
         });
     }
 
     private void rejectInterfaceAnnotatedWithComponent(Class<?> type) {
-        if(type.isInterface()) {
+        if (type.isInterface()) {
             throw new InterfaceAnnotationException(String.format(
                     "%s can not be annotated as Component", type));
         }
@@ -68,10 +94,10 @@ public class Scanner {
         var dependsOnFromSetters = scanAutowiredMethods(type);
 
         var beanConfigurators = new ArrayList<BeanConfigurator>();
-        if(!dependsOnFields.isEmpty()){
+        if (!dependsOnFields.isEmpty()) {
             beanConfigurators.add(new AutowiredFieldBeanConfigurator());
         }
-        if(!dependsOnFromSetters.isEmpty()){
+        if (!dependsOnFromSetters.isEmpty()) {
             beanConfigurators.add(new AutowiredSetterBeanConfigurator());
         }
         dependsOnFields.addAll(dependsOnFromSetters);
@@ -92,7 +118,7 @@ public class Scanner {
         return Arrays.stream(targetClass.getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(Autowired.class))
                 .map(field -> InterfaceAnalyzer.getImplementation(targetClass, field, classesAnnotatedWithComponent))
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     // find Autowired methods(setters)
@@ -103,16 +129,16 @@ public class Scanner {
                 .map(method -> Arrays.stream(method.getParameterTypes()).findFirst())
                 .flatMap(Optional::stream)
                 .map(Type::getTypeName)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     private void setUpBeanCreators(BeanDefinition beanDefinition,
                                    Class<?> type) {
-        if(isDefaultConstructorPresent(type)) {
+        if (isDefaultConstructorPresent(type)) {
             beanDefinition.setBeanCreator(new EmptyConstructorBeanCreator());
             return;
         }
-        if(isSingleAutowiredConstructorPresent(type)) {
+        if (isSingleAutowiredConstructorPresent(type)) {
             beanDefinition.setBeanCreator(new AutowiredConstructorBeanCreator());
             AutowiredConstructorHelper.validateAndSetUpDependsOnFields(beanDefinition);
             return;
