@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.reflections.Reflections;
 
 import com.blyznytsia.bring.context.annotation.Configuration;
+import com.blyznytsia.bring.context.exceptions.ConfigurationNotFoundException;
 
 import lombok.SneakyThrows;
 
@@ -29,6 +30,11 @@ public class ApplicationContext extends BeanFactory {
                     return !reflections.getTypesAnnotatedWith(Configuration.class).isEmpty();
                 })
                 .map(Package::getName).collect(Collectors.toList());
+
+        if (packagesWithConfiguration.isEmpty()) {
+            throw new ConfigurationNotFoundException(
+                    "No package with class annotated with @Configuration found. Context creation not possible");
+        }
 
         var scanner = new Scanner();
         scanner.scan(packagesWithConfiguration, beanDefinitionRegistry);

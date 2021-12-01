@@ -22,7 +22,9 @@ public class AutowiredFieldBeanConfigurator implements BeanConfigurator {
                 .forEach(field -> {
                     field.setAccessible(true);
                     try {
-                        String typeName = getImplementationIfFieldIsInterface(field, beanDefinition);
+                        String typeName = isFieldInterface(field) ?
+                                getImplementation(field, beanDefinition) :
+                                field.getType().getName();
                         field.set(objectToConfigure, beanMap.get(typeName));
                     } catch (IllegalAccessException e) {
                         throw new BeanCreationException("Unable to set @Autowired field");
@@ -32,10 +34,8 @@ public class AutowiredFieldBeanConfigurator implements BeanConfigurator {
         return objectToConfigure;
     }
 
-    private String getImplementationIfFieldIsInterface(Field field, BeanDefinition beanDefinition) {
-        if(fieldIsNotInterface(field)) {
-            return field.getType().getName();
-        }
+    private String getImplementation(Field field, BeanDefinition beanDefinition) {
+        var fieldInterface = field.getType();
         return beanDefinition.getDependsOnFields().stream()
                 .filter(dependOn -> {
                             Class<?> dependOnClass = null;
@@ -44,19 +44,19 @@ public class AutowiredFieldBeanConfigurator implements BeanConfigurator {
                             } catch (ClassNotFoundException e) {
                                 e.printStackTrace();
                             }
-                            return isClassInterfaceImplementation(dependOnClass, field.getType());
+                            return isClassInterfaceImplementation(dependOnClass, fieldInterface);
                         })
                 .findFirst()
                 .orElseThrow();
     }
 
-    private boolean isClassInterfaceImplementation(Class<?> aClass,
+    private boolean isClassInterfaceImplementation(Class<?> dependsOnClass,
                                                    Class<?> fieldInterface) {
-        return Arrays.stream(aClass.getInterfaces())
+        return Arrays.stream(dependsOnClass.getInterfaces())
                 .anyMatch(aInterface -> aInterface.getName().equals(fieldInterface.getName()));
     }
 
-    private static boolean fieldIsNotInterface(Field field) {
-        return !field.getType().isInterface();
+    private boolean isFieldInterface(Field field) {
+        return field.getType().isInterface();
     }
 }
