@@ -5,9 +5,13 @@ import static java.util.stream.Collectors.toList;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.reflections.Reflections;
 
@@ -29,40 +33,48 @@ import com.blyznytsia.bring.context.util.InterfaceAnalyzer;
 
 /**
  * Class scans packages that contain classes annotated with @Configuration, finds those classes,
- * reads @ComponentScan annotations value - for getting packages which are scanned
- * for classes annotated with @Component - which metadata are collected for further beans creation.
+ * populates packageComponentsMap that is storage of package name and its classes annotated with @Component,
+ * processes @ComponentScan annotations of each configuration class and inside packages that are indicated as these
+ * annotation value scans @Component classes and collects such classes metadata.
  * These metadata is placed into BeanDefinition instances that are stored in
  * BeanDefinitionRegistry's storage
  */
 public class Scanner {
+    private Map<String, Set<Class<?>>> packageComponentsMap = new HashMap<>();
 
     public void scan(List<String> packagesContainingConfigClasses, BeanDefinitionRegistry registry) {
-        packagesContainingConfigClasses
-                .forEach(packageContainingConfigClasses -> {
+        List<Class<?>> configClasses = packagesContainingConfigClasses.stream()
+                .flatMap(packageContainingConfigClasses -> {
                     var reflections = new Reflections(packageContainingConfigClasses);
-                    var configClasses = reflections.getTypesAnnotatedWith(Configuration.class);
-                    configClasses
-                            .forEach(configClass ->
-                                    scanConfigClassAndCreateBeanDefinitions(configClass, registry));
-                });
+                    return reflections.getTypesAnnotatedWith(Configuration.class).stream();
+                }).collect(Collectors.toList());
+
+        populatePackageComponentsMap(configClasses);
+
+        configClasses.forEach(configClass -> {
+            checkConfigClass(configClass);
+            createBeanDefinitionsFromComponentScanAnnotation(configClass, registry);
+            createBeanDefinitionsFromBeanAnnotations();
+        });
     }
 
-    private void scanConfigClassAndCreateBeanDefinitions(Class<?> configClass,
-                                                         BeanDefinitionRegistry registry) {
+    private void populatePackageComponentsMap(List<Class<?>> configClasses) {
+        configClasses.forEach(configClass -> {
+            var packagesFromComponentScan = configClass.getAnnotation(ComponentScan.class).value();
+
+            Arrays.stream(packagesFromComponentScan)
+                    .forEach(packageFromComponentScan -> {
+                        var reflection = new Reflections(packageFromComponentScan);
+                        var classesComponents = reflection.getTypesAnnotatedWith(Component.class);
+                        packageComponentsMap.computeIfAbsent(packageFromComponentScan, packageName -> classesComponents);
+                    });
+        });
+    }
+
+    private void checkConfigClass(Class<?> configClass) {
         boolean isConfigClassWithComponentScan = configClass.isAnnotationPresent(ComponentScan.class);
         boolean isConfigClassWithBeans = Arrays.stream(configClass.getMethods())
                 .anyMatch(method -> method.isAnnotationPresent(Bean.class));
-
-        if (isConfigClassWithComponentScan) {
-            var packagesFromComponentScan = configClass.getAnnotation(ComponentScan.class).value();
-            Arrays.stream(packagesFromComponentScan)
-                    .forEach(packageFromComponentScan ->
-                            scanPackageAndCreateBeanDefinitions(packageFromComponentScan, registry));
-        }
-
-        if (isConfigClassWithBeans) {
-            //TODO: implement creating BeanDefinition from @Bean annotation
-        }
 
         if (!isConfigClassWithComponentScan && !isConfigClassWithBeans) {
             throw new ConfigurationInsufficientException(String.format(
@@ -70,14 +82,25 @@ public class Scanner {
         }
     }
 
-    private void scanPackageAndCreateBeanDefinitions(String packageFromComponentScan,
-                                                     BeanDefinitionRegistry registry) {
-        var reflection = new Reflections(packageFromComponentScan);
-        var classesAnnotatedWithComponent = reflection.getTypesAnnotatedWith(Component.class);
-        classesAnnotatedWithComponent.forEach(type -> {
-            rejectInterfaceAnnotatedWithComponent(type);
-            registerBeanDefinition(registry, type, classesAnnotatedWithComponent);
-        });
+    private void createBeanDefinitionsFromComponentScanAnnotation(Class<?> configClass,
+                                                                  BeanDefinitionRegistry registry) {
+        var packagesFromComponentScan = configClass.getAnnotation(ComponentScan.class).value();
+        Set<Class<?>> componentsForCurrentConfigClass = new HashSet<>();
+
+        Arrays.stream(packagesFromComponentScan)
+                .forEach(packageFromComponentScan ->
+                        componentsForCurrentConfigClass.addAll(
+                                packageComponentsMap.get(packageFromComponentScan)));
+
+        componentsForCurrentConfigClass
+                .forEach(type -> {
+                    rejectInterfaceAnnotatedWithComponent(type);
+                    registerBeanDefinition(registry, type, componentsForCurrentConfigClass);
+                });
+    }
+
+    private void createBeanDefinitionsFromBeanAnnotations() {
+        //TODO
     }
 
     private void rejectInterfaceAnnotatedWithComponent(Class<?> type) {
@@ -88,9 +111,9 @@ public class Scanner {
     }
 
     private void registerBeanDefinition(BeanDefinitionRegistry registry, Class<?> type,
-                                        Set<Class<?>> classesAnnotatedWithComponent) {
+                                        Set<Class<?>> components) {
 
-        var dependsOnFields = scanAutowiredFields(type, classesAnnotatedWithComponent);
+        var dependsOnFields = scanAutowiredFields(type, components);
         var dependsOnFromSetters = scanAutowiredMethods(type);
 
         var beanConfigurators = new ArrayList<BeanConfigurator>();
@@ -114,10 +137,10 @@ public class Scanner {
 
     // find Autowired fields, if they are Interface type -> define implementation
     private List<String> scanAutowiredFields(Class<?> targetClass,
-                                             Set<Class<?>> classesAnnotatedWithComponent) {
+                                             Set<Class<?>> components) {
         return Arrays.stream(targetClass.getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(Autowired.class))
-                .map(field -> InterfaceAnalyzer.getImplementation(targetClass, field, classesAnnotatedWithComponent))
+                .map(field -> InterfaceAnalyzer.getImplementation(targetClass, field, components))
                 .collect(toList());
     }
 
