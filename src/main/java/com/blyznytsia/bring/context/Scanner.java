@@ -49,10 +49,10 @@ public class Scanner {
                     return reflections.getTypesAnnotatedWith(Configuration.class).stream();
                 }).collect(Collectors.toList());
 
+        validateConfigClasses(configClasses);
         populatePackageComponentsMap(configClasses);
 
         configClasses.forEach(configClass -> {
-            checkConfigClass(configClass);
             createBeanDefinitionsFromComponentScanAnnotation(configClass, registry);
             createBeanDefinitionsFromBeanAnnotations();
         });
@@ -71,15 +71,17 @@ public class Scanner {
         });
     }
 
-    private void checkConfigClass(Class<?> configClass) {
-        boolean isConfigClassWithComponentScan = configClass.isAnnotationPresent(ComponentScan.class);
-        boolean isConfigClassWithBeans = Arrays.stream(configClass.getMethods())
-                .anyMatch(method -> method.isAnnotationPresent(Bean.class));
+    private void validateConfigClasses(List<Class<?>> configClasses) {
+        configClasses.forEach(configClass -> {
+            boolean isConfigClassWithComponentScan = configClass.isAnnotationPresent(ComponentScan.class);
+            boolean isConfigClassWithBeans = Arrays.stream(configClass.getMethods())
+                    .anyMatch(method -> method.isAnnotationPresent(Bean.class));
 
-        if (!isConfigClassWithComponentScan && !isConfigClassWithBeans) {
-            throw new ConfigurationInsufficientException(String.format(
-                    "No @ComponentScan or @Bean annotations found in %s", configClass.getName()));
-        }
+            if (!isConfigClassWithComponentScan && !isConfigClassWithBeans) {
+                throw new ConfigurationInsufficientException(String.format(
+                        "No @ComponentScan or @Bean annotations found in %s", configClass.getName()));
+            }
+        });
     }
 
     private void createBeanDefinitionsFromComponentScanAnnotation(Class<?> configClass,
@@ -112,7 +114,13 @@ public class Scanner {
 
     private void registerBeanDefinition(BeanDefinitionRegistry registry, Class<?> type,
                                         Set<Class<?>> components) {
+        if (!registry.containsBeanDefinition(type.getName())) {
+            BeanDefinition beanDefinition = createBeanDefinition(type, components);
+            registry.registerBeanDefinition(type.getName(), beanDefinition);
+        }
+    }
 
+    private BeanDefinition createBeanDefinition(Class<?> type, Set<Class<?>> components) {
         var dependsOnFields = scanAutowiredFields(type, components);
         var dependsOnFromSetters = scanAutowiredMethods(type);
 
@@ -132,7 +140,7 @@ public class Scanner {
 
         setUpBeanCreators(beanDefinition, type);
 
-        registry.registerBeanDefinition(type.getName(), beanDefinition);
+        return beanDefinition;
     }
 
     // find Autowired fields, if they are Interface type -> define implementation
