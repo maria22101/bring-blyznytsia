@@ -14,20 +14,20 @@ public class InterfaceAnalyzer {
 
     public static String getImplementation(Class<?> targetClass,
                                            Field field,
-                                           Set<Class<?>> classesAnnotatedWithComponent) {
+                                           Set<Class<?>> interfaceImplementationsRange) {
         if(fieldIsNotInterface(field)) {
             return field.getType().getName();
         }
         if (fieldIsWithoutQualifierAnnotation(field)) {
-            return getImplementationOfNotAnnotatedInterfaceField(targetClass, field, classesAnnotatedWithComponent);
+            return getImplementationOfNotAnnotatedInterfaceField(targetClass, field, interfaceImplementationsRange);
         }
-        return getImplementationOfAnnotatedInterfaceField(targetClass, field, classesAnnotatedWithComponent);
+        return getImplementationOfAnnotatedInterfaceField(targetClass, field, interfaceImplementationsRange);
     }
 
     private static String getImplementationOfNotAnnotatedInterfaceField(Class<?> targetClass,
                                                                         Field field,
-                                                                        Set<Class<?>> classesAnnotatedWithComponent) {
-        var implementations = getInterFaceImplementations(field.getType(), classesAnnotatedWithComponent);
+                                                                        Set<Class<?>> interfaceImplementationsRange) {
+        var implementations = getInterFaceImplementations(field.getType(), interfaceImplementationsRange);
 
         if (implementations.isEmpty()) {
             throw new InterfaceInjectionException(String.format(
@@ -44,12 +44,12 @@ public class InterfaceAnalyzer {
 
     private static String getImplementationOfAnnotatedInterfaceField(Class<?> targetClass,
                                                                      Field field,
-                                                                     Set<Class<?>> classesAnnotatedWithComponent) {
+                                                                     Set<Class<?>> interfaceImplementationsRange) {
         var qualifierValue = field.getAnnotation(Qualifier.class).value();
         var fieldInterface = field.getType();
 
         var implementations =
-                getInterfaceImplWithAnnotationValue(fieldInterface, classesAnnotatedWithComponent, qualifierValue);
+                getInterfaceImplWithAnnotationValue(fieldInterface, interfaceImplementationsRange, qualifierValue);
 
         if (implementations.isEmpty()) {
             throw new InterfaceInjectionException(String.format(
@@ -73,8 +73,8 @@ public class InterfaceAnalyzer {
     }
 
     private static List<Class<?>> getInterFaceImplementations(Class<?> fieldInterface,
-                                                              Set<Class<?>> classesAnnotatedWithComponent) {
-        return classesAnnotatedWithComponent.stream()
+                                                              Set<Class<?>> interfaceImplementationsRange) {
+        return interfaceImplementationsRange.stream()
                 .filter(aClass -> isClassInterfaceImplementation(aClass, fieldInterface))
                 .collect(Collectors.toList());
     }
@@ -86,9 +86,9 @@ public class InterfaceAnalyzer {
     }
 
     private static List<Class<?>> getInterfaceImplWithAnnotationValue(Class<?> fieldInterface,
-                                                                      Set<Class<?>> classesAnnotatedWithComponent,
+                                                                      Set<Class<?>> interfaceImplementationsRange,
                                                                       String annotationValue) {
-        return classesAnnotatedWithComponent.stream()
+        return interfaceImplementationsRange.stream()
                 .filter(aClass -> isClassInterfaceImplementation(aClass, fieldInterface) &&
                         aClass.getAnnotation(Component.class).value().equals(annotationValue))
                 .collect(Collectors.toList());

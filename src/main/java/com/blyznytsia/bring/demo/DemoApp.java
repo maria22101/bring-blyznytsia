@@ -6,6 +6,8 @@ import com.blyznytsia.bring.demo.classes.Class2;
 import com.blyznytsia.bring.demo.classes.Class3;
 import com.blyznytsia.bring.demo.classes.Class4;
 import com.blyznytsia.bring.demo.classes.Class5;
+import com.blyznytsia.bring.demo.classes.Class5_HelloInterfaceImpl;
+import com.blyznytsia.bring.demo.classes.Class6_HelloInterfaceImpl;
 import com.blyznytsia.bring.demo.classes_x.ClassX;
 import com.blyznytsia.bring.demo.classes_y.ClassY;
 
@@ -18,6 +20,8 @@ public class DemoApp {
         var class3 = context.getBean(Class3.class);
         var class4 = context.getBean(Class4.class);
         var class5 = context.getBean(Class5.class);
+        var class5InterfaceImpl = context.getBean(Class5_HelloInterfaceImpl.class);
+        var class6InterfaceImpl = context.getBean(Class6_HelloInterfaceImpl.class);
         var classX = context.getBean(ClassX.class);
         var classY = context.getBean(ClassY.class);
 
@@ -28,12 +32,14 @@ public class DemoApp {
         class3.printName();
         class4.printName();
         class5.printName();
+        class5InterfaceImpl.printName();
+        class6InterfaceImpl.printName();
         classX.printName();
         classY.printName();
 
         System.out.println();
         // bean configurators check:
-        System.out.println(" -----class2 (with autowired field class3): ");
+        System.out.println(" -----class2 (with autowired fields class3 and HelloInterface): ");
         class2.printFields();
 
         System.out.println();
