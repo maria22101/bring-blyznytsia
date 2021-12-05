@@ -3,23 +3,21 @@ package com.blyznytsia.bring.context;
 import java.util.HashMap;
 import java.util.Map;
 
-import lombok.SneakyThrows;
+import com.blyznytsia.bring.context.exceptions.NoSuchBeanException;
 
-public class ApplicationContext extends BeanFactory {
+import lombok.Setter;
 
+@Setter
+public class ApplicationContext {
+
+    private Scanner scanner = new Scanner();
+    private BeanFactory factory = new BeanFactory();
     private BeanDefinitionRegistry beanDefinitionRegistry = new BeanDefinitionRegistry();
     private Map<String, Object> beanMap = new HashMap<>();
 
-    public ApplicationContext() {
-        init();
-    }
-
-    @SneakyThrows
-    private void init() {
-        var scanner = new Scanner();
-        scanner.scan(beanDefinitionRegistry);
-
-        traverseBeanDefinitionRegistryAndFillBeanMap(beanDefinitionRegistry, beanMap);
+    public void init() {
+        scanner.scanAndFillBeanDefinitionRegistry(beanDefinitionRegistry);
+        factory.traverseBeanDefinitionRegistryAndFillBeanMap(beanDefinitionRegistry, beanMap);
     }
 
     public <T> T getBean(Class<T> type) {
@@ -29,6 +27,9 @@ public class ApplicationContext extends BeanFactory {
                 .filter(type::isInstance)
                 .findAny()
                 .map(type::cast)
-                .orElseThrow();
+                .orElseThrow(() ->
+                        new NoSuchBeanException(String.format(
+                                "No Bean of type %s created", type.getName())));
     }
 }
+

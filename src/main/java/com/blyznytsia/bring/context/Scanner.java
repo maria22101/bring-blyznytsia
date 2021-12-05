@@ -29,9 +29,9 @@ import com.blyznytsia.bring.context.util.BeanDefinitionGenerator;
  * of this package BeanDefinition is generated and stored in BeanDefinitionRegistry's storage
  */
 public class Scanner {
-    private Map<String, Set<Class<?>>> packageComponentsMap = new HashMap<>();
+    private final Map<String, Set<Class<?>>> packageComponentsMap = new HashMap<>();
 
-    public void scan(BeanDefinitionRegistry registry) {
+    public void scanAndFillBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
         var configClasses = getConfigClasses();
         validateConfigClasses(configClasses);
         populatePackageComponentsMap(configClasses);
