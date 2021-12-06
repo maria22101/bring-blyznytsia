@@ -7,11 +7,8 @@ import java.util.stream.Collectors;
 import com.blyznytsia.bring.context.constants.BeanStatus;
 import com.blyznytsia.bring.context.exceptions.CircularDependencyException;
 
-import lombok.SneakyThrows;
-
 public class BeanFactory {
 
-    @SneakyThrows
     public void traverseBeanDefinitionRegistryAndFillBeanMap(BeanDefinitionRegistry beanDefinitionRegistry,
                                                              Map<String, Object> beanMap) {
 

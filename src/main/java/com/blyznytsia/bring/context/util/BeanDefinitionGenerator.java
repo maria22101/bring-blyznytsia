@@ -59,7 +59,7 @@ public class BeanDefinitionGenerator {
 
     // find Autowired methods(setters)
     //TODO: process exception if there are two method parameters
-    private static List<String> scanAutowiredMethods(Class<?> type) {
+    public static List<String> scanAutowiredMethods(Class<?> type) {
         return Arrays.stream(type.getDeclaredMethods())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
                 .map(method -> Arrays.stream(method.getParameterTypes()).findFirst())

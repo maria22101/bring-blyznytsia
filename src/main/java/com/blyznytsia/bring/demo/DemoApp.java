@@ -1,6 +1,6 @@
 package com.blyznytsia.bring.demo;
 
-import com.blyznytsia.bring.context.ApplicationContext;
+import com.blyznytsia.bring.Bring;
 import com.blyznytsia.bring.demo.classes.Class1;
 import com.blyznytsia.bring.demo.classes.Class2;
 import com.blyznytsia.bring.demo.classes.Class3;
@@ -13,7 +13,7 @@ import com.blyznytsia.bring.demo.classes_y.ClassY;
 
 public class DemoApp {
     public static void main(String[] args) {
-        var context = new ApplicationContext();
+        var context = Bring.bringContext();
 
         var class1 = context.getBean(Class1.class);
         var class2 = context.getBean(Class2.class);
