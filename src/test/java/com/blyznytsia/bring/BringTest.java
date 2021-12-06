@@ -30,7 +30,7 @@ class BringTest {
         }
 
         // when:
-        var context = Bring.bringContext();
+        Bring.bringContext();
 
         // then:
         verify(mockedApplicationContext).init();
