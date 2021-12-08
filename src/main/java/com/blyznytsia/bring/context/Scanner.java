@@ -24,8 +24,6 @@ import com.blyznytsia.bring.context.exceptions.ConfigurationNotFoundException;
 import com.blyznytsia.bring.context.exceptions.InterfaceAnnotationException;
 import com.blyznytsia.bring.context.util.BeanDefinitionGenerator;
 
-import lombok.Setter;
-
 /**
  * Class scans all packages and finds classes annotated with @Configuration, then in these classes
  * gets value of @ComponentScan annotation, in packages indicated as value of this annotation finds classes
@@ -101,39 +99,41 @@ public class Scanner {
         var packagesForCurrentConfig = config.getAnnotation(ComponentScan.class).value();
 
         getAllClassesForCurrentConfig(config, packagesForCurrentConfig)
-                .forEach(targetClass -> {
-                    rejectInterfaceAnnotatedWithComponent(targetClass);
-                    registerBeanDefinition(targetClass, registry, componentsFromAllConfigs);
-                });
+                .forEach(targetClass ->
+                    registerBeanDefinition(targetClass, registry, componentsFromAllConfigs));
     }
 
     private Set<Class<?>> getAllClassesForCurrentConfig(Class<?> config,
                                                         String[] packages) {
         var classes = new HashSet<>(getClassesAnnotatedWithComponent(packages));
-        classes.addAll(getClassesAnnotatedWithBean(config));
+        classes.addAll(getClassesFromBeanAnnotation(config));
         return classes;
     }
 
     private Set<Class<?>> getClassesAnnotatedWithComponent(String[] packages) {
-        return packagesAndTheirComponentsFromAllConfigs.entrySet().stream()
+        var classes = packagesAndTheirComponentsFromAllConfigs.entrySet().stream()
                 .filter(entry -> List.of(packages).contains(entry.getKey()))
                 .flatMap(entry -> entry.getValue().stream())
                 .collect(Collectors.toSet());
+        classes.forEach(this::rejectInterfaceAnnotatedWithComponent);
+        return classes;
     }
 
-    private Set<Class<?>> getClassesAnnotatedWithBean(Class<?> config) {
-        var classes = Arrays.stream(config.getMethods())
+    private Set<Class<?>> getClassesFromBeanAnnotation(Class<?> config) {
+        var methodsAnnotatedWithBean = Arrays.stream(config.getMethods())
                 .filter(method -> method.isAnnotationPresent(Bean.class))
                 .collect(toSet());
-        return classes.stream()
+        methodsAnnotatedWithBean.forEach(this::rejectIfReturnTypeIsInterface);
+
+        return methodsAnnotatedWithBean.stream()
                 .map(Method::getReturnType)
                 .collect(toSet());
     }
 
-    private void rejectInterfaceAnnotatedWithComponent(Class<?> targetClass) {
-        if (targetClass.isInterface()) {
+    private void rejectInterfaceAnnotatedWithComponent(Class<?> aClass) {
+        if (aClass.isInterface()) {
             throw new InterfaceAnnotationException(String.format(
-                    "%s can not be annotated as Component", targetClass));
+                    "%s can not be annotated as Component", aClass));
         }
     }
 
@@ -143,6 +143,13 @@ public class Scanner {
         if (!registry.containsBeanDefinition(targetClass.getName())) {
             var beanDefinition = BeanDefinitionGenerator.generate(targetClass, componentsFromAllConfigs);
             registry.registerBeanDefinition(targetClass.getName(), beanDefinition);
+        }
+    }
+
+    private void rejectIfReturnTypeIsInterface(Method method) {
+        if (method.getReturnType().isInterface()) {
+            throw new InterfaceAnnotationException(String.format(
+                    "Method %s return type is an interface", method));
         }
     }
 }
