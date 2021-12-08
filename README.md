@@ -8,7 +8,7 @@ Just use these annotations:
 - **@ComponentScan** - indicate in the configuration file packages where your classes located
 - **@Component** - indicate your classes objects of which type you want
 - **@Autowired** - mark fields for injection 
-- **@Qualifier** - selector of interface implementation class
+- **@Qualifier** - select interface implementation class
 
 In details:
 
