@@ -49,8 +49,8 @@ public class BeanDefinitionGenerator {
     }
 
     // find Autowired fields, if they are Interface type -> define implementation
-    private static List<String> scanAutowiredFields(Class<?> targetClass,
-                                                    Set<Class<?>> interfaceImplementationsRange) {
+    public static List<String> scanAutowiredFields(Class<?> targetClass,
+                                                   Set<Class<?>> interfaceImplementationsRange) {
         return Arrays.stream(targetClass.getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(Autowired.class))
                 .map(field -> InterfaceAnalyzer.getImplementation(targetClass, field, interfaceImplementationsRange))

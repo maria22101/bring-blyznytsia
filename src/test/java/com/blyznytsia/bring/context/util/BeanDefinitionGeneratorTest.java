@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.blyznytsia.bring.context.BeanDefinition;
@@ -37,6 +38,7 @@ import com.blyznytsia.bring.context.services.impl.EmptyConstructorBeanCreator;
 class BeanDefinitionGeneratorTest {
 
     @Test
+    @DisplayName("For Bean without dependent fields")
     void noFields() {
         var testClass = Class1.class;
 
@@ -48,6 +50,7 @@ class BeanDefinitionGeneratorTest {
     }
 
     @Test
+    @DisplayName("For Bean with one autowired field")
     void oneAutowiredField() {
         var testClass = Class2.class;
         var testClassFieldsToInject = List.of(Class3.class.getName());
@@ -60,6 +63,7 @@ class BeanDefinitionGeneratorTest {
     }
 
     @Test
+    @DisplayName("For Bean with one field autowired via setter")
     void oneFieldAutowiredViaSetter() {
         var testClass = Class3.class;
         var testClassFieldsToInject = List.of(Class1.class.getName());
@@ -72,6 +76,7 @@ class BeanDefinitionGeneratorTest {
     }
 
     @Test
+    @DisplayName("For Bean with fields some of which autowired via constructor")
     void someFieldsAutowiredViaConstructor() {
         var testClass = Class4.class;
         var testClassFieldsToInject = List.of(Class1.class.getName(), Class3.class.getName());
@@ -84,6 +89,7 @@ class BeanDefinitionGeneratorTest {
     }
 
     @Test
+    @DisplayName("For Bean with all fields autowired via constructor")
     void allFieldsAutowiredViaConstructor() {
         var testClass = Class5.class;
         var testClassFieldsToInject = List.of(Class1.class.getName(), Class2.class.getName(),
@@ -97,6 +103,7 @@ class BeanDefinitionGeneratorTest {
     }
 
     @Test
+    @DisplayName("For Bean with a field of an interface type")
     void oneFieldOfInterfaceType() {
         var testClass = Class6.class;
         var testClassFieldsToInject = List.of(HelloInterfaceImpl_2.class.getName());
@@ -110,6 +117,7 @@ class BeanDefinitionGeneratorTest {
     }
 
     @Test
+    @DisplayName("For Bean with a field of an interface type and various injection modes")
     void oneFieldOfInterfaceTypeAndMixedAutowiringModes() {
         var testClass = Class7.class;
         var testClassFieldsToInject = List.of(Class2.class.getName(),
@@ -124,6 +132,7 @@ class BeanDefinitionGeneratorTest {
     }
 
     @Test
+    @DisplayName("Exception if no default or autowired constructors present")
     void withoutDefaultOrAutowiredConstructor() {
         var testClass = NoRequiredConstructors.class;
 

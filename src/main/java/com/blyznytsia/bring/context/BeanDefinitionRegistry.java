@@ -3,7 +3,8 @@ package com.blyznytsia.bring.context;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javassist.NotFoundException;
+import com.blyznytsia.bring.context.exceptions.BeanDefinitionNotFoundException;
+
 import lombok.SneakyThrows;
 
 public class BeanDefinitionRegistry {
@@ -20,7 +21,7 @@ public class BeanDefinitionRegistry {
     @SneakyThrows
     public void removeBeanDefinition(String beanName) {
         if (this.beanDefinitionMap.remove(beanName) == null) {
-            throw new NotFoundException(beanName);
+            throw new BeanDefinitionNotFoundException(String.format("BeanDefinition for %s not found", beanName));
         }
     }
 
@@ -28,7 +29,7 @@ public class BeanDefinitionRegistry {
     public BeanDefinition getBeanDefinition(String beanName) {
         BeanDefinition bd = this.beanDefinitionMap.get(beanName);
         if (bd == null) {
-            throw new NotFoundException(beanName);
+            throw new BeanDefinitionNotFoundException(String.format("BeanDefinition for %s not found", beanName));
         }
         return bd;
     }
