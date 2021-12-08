@@ -4,10 +4,10 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.reflections.Reflections;
 
@@ -83,23 +83,16 @@ public class Scanner {
     private void createBeanDefinitionsFromComponentScanAnnotation(Class<?> configClass,
                                                                   BeanDefinitionRegistry registry) {
         var packagesToScanForCurrentConfigClass = configClass.getAnnotation(ComponentScan.class).value();
-        var componentsForCurrentConfigClass = getComponents(packagesToScanForCurrentConfigClass);
+        var componentsForCurrentConfigClass = packageComponentsMap.entrySet().stream()
+                .filter(entry -> List.of(packagesToScanForCurrentConfigClass).contains(entry.getKey()))
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(Collectors.toSet());
 
         componentsForCurrentConfigClass
                 .forEach(targetClass -> {
                     rejectInterfaceAnnotatedWithComponent(targetClass);
                     registerBeanDefinition(registry, targetClass, componentsForCurrentConfigClass);
                 });
-    }
-
-    private HashSet<Class<?>> getComponents(String[] packages) {
-        var components = new HashSet<Class<?>>();
-        Arrays.stream(packages)
-                .forEach(p -> {
-                    var packageComponents = packageComponentsMap.get(p);
-                    components.addAll(packageComponents);
-                });
-        return components;
     }
 
     private void createBeanDefinitionsFromBeanAnnotations() {
