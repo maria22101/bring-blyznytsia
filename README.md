@@ -1,9 +1,16 @@
-#Bring Framework 
+# Bring Framework 
 
 ## The project is an implementation of Dependency Injection Container:
 ## You declare the class an object of which type you need and Bring Framework delivers the object of this class!
 
-For using the framework:
+Just use these annotations:
+- **@Configuration** - mark configuration file
+- **@ComponentScan** - indicate in the configuration file packages where your classes located
+- **@Component** - indicate your classes objects of which type you want
+- **@Autowired** - mark fields for injection 
+- **@Qualifier** - selector of interface implementation class
+
+In details:
 
 **1. Add framework as a library**
 
