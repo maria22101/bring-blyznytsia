@@ -3,6 +3,7 @@ package com.blyznytsia.bring.demo.classes;
 import com.blyznytsia.bring.context.annotation.Autowired;
 import com.blyznytsia.bring.context.annotation.Component;
 import com.blyznytsia.bring.context.annotation.Qualifier;
+import com.blyznytsia.bring.demo.interfaces.HelloInterface;
 
 @Component
 public class Class2 {

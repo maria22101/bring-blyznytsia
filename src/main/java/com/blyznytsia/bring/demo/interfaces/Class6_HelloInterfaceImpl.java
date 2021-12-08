@@ -1,4 +1,4 @@
-package com.blyznytsia.bring.demo.classes;
+package com.blyznytsia.bring.demo.interfaces;
 
 import com.blyznytsia.bring.context.annotation.Component;
 

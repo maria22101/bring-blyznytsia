@@ -6,10 +6,11 @@ import com.blyznytsia.bring.demo.classes.Class2;
 import com.blyznytsia.bring.demo.classes.Class3;
 import com.blyznytsia.bring.demo.classes.Class4;
 import com.blyznytsia.bring.demo.classes.Class5;
-import com.blyznytsia.bring.demo.classes.Class5_HelloInterfaceImpl;
-import com.blyznytsia.bring.demo.classes.Class6_HelloInterfaceImpl;
+import com.blyznytsia.bring.demo.classes_beans.ClassBean;
 import com.blyznytsia.bring.demo.classes_x.ClassX;
 import com.blyznytsia.bring.demo.classes_y.ClassY;
+import com.blyznytsia.bring.demo.interfaces.Class5_HelloInterfaceImpl;
+import com.blyznytsia.bring.demo.interfaces.Class6_HelloInterfaceImpl;
 
 public class DemoApp {
     public static void main(String[] args) {
@@ -24,6 +25,7 @@ public class DemoApp {
         var class6InterfaceImpl = context.getBean(Class6_HelloInterfaceImpl.class);
         var classX = context.getBean(ClassX.class);
         var classY = context.getBean(ClassY.class);
+        var classBean = context.getBean(ClassBean.class);
 
         // beans creation check:
         System.out.println(" -----beans created: ");
@@ -36,14 +38,15 @@ public class DemoApp {
         class6InterfaceImpl.printName();
         classX.printName();
         classY.printName();
+        classBean.printName();
 
         System.out.println();
         // bean configurators check:
-        System.out.println(" -----class2 (with autowired fields class3 and HelloInterface): ");
+        System.out.println(" -----Class2 (with autowired fields class3 and HelloInterface. Class2 and HelloInterface implementation derives from different config classes): ");
         class2.printFields();
 
         System.out.println();
-        System.out.println(" -----class3 (with autowired via setter field class1): ");
+        System.out.println(" -----Class3 (with autowired via setter field class1): ");
         class3.printFields();
 
         System.out.println();
@@ -61,5 +64,9 @@ public class DemoApp {
         System.out.println();
         System.out.println(" -----ClassY (from 3rd package indicated in @ComponentScan; with fields Class3, Class5 injected via autowired constructor): ");
         classY.printFields();
+
+        System.out.println();
+        System.out.println(" -----ClassBean (result of @Bean annotation: ");
+        classBean.printName();
     }
 }
