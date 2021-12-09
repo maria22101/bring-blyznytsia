@@ -25,6 +25,11 @@ import com.blyznytsia.bring.context.util.BeanDefinitionGenerator;
  */
 public class Scanner {
 
+    /**
+     * Method populates {@link BeanDefinitionRegistry} with {@link BeanDefinition}
+     *
+     * @param registry      storage of {@link BeanDefinition}
+     */
     public void scanAndFillBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
         var configs = getConfigs();
         validateConfigs(configs);
@@ -35,7 +40,7 @@ public class Scanner {
     }
 
     /**
-     * Method that scans all the packages
+     * Method scans all the packages
      *
      * @return a list of all {@link Configuration} annotated classes of the packages
      */
@@ -50,7 +55,7 @@ public class Scanner {
     /**
      * Validation method that terminates application performance if:
      * - no config classes provided
-     * - a class from the provided config classes is both not  {@link ComponentScan} annotated
+     * - a class from the provided config classes is both not {@link ComponentScan} annotated
      * and does not have methods annotated with {@link Bean}
      *
      * @param configs    config classes
@@ -116,7 +121,7 @@ public class Scanner {
     /**
      * Method iterates over submitted config classes,
      * finds {@link Bean} annotated methods, calls validation of their return-type-classes
-     * and collect the valid ones
+     * and collects the valid ones
      *
      * @param configs   config classes
      * @return          set of return-type-classes of {@link Bean} annotated methods
@@ -149,9 +154,9 @@ public class Scanner {
      * Method populates the provided {@link BeanDefinitionRegistry} with {@link BeanDefinition}
      * received from call to {@link BeanDefinitionGenerator}
      *
-     * @param targetClass           a class that is source for {@link BeanDefinition}
-     * @param registry              {@link BeanDefinition} container
-     * @param componentsClasses     all {@link Component} classes eligible for {@link BeanDefinition} creation
+     * @param targetClass         a class that is source for {@link BeanDefinition}
+     * @param registry            {@link BeanDefinition} container
+     * @param componentsClasses   all {@link Component} annotated classes eligible for {@link BeanDefinition} creation
      */
     private void registerBeanDefinition(Class<?> targetClass,
                                         BeanDefinitionRegistry registry,
