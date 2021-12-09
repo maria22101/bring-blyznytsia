@@ -34,9 +34,9 @@ public class Scanner {
         var configs = getConfigs();
         validateConfigs(configs);
         var allComponentsClasses = getAllClassesAnnotatedWithComponent(configs);
-        var allClassesForBeanCreation = collectAllClassesForBeanDefinitionCreation(configs, allComponentsClasses);
+        var allClasses = collectAllClassesForBeanDefinitionCreation(configs, allComponentsClasses);
 
-        allClassesForBeanCreation.forEach(targetClass -> registerBeanDefinition(targetClass, registry, allComponentsClasses));
+        allClasses.forEach(targetClass -> registerBeanDefinition(targetClass, registry, allComponentsClasses));
     }
 
     /**
@@ -53,10 +53,7 @@ public class Scanner {
     }
 
     /**
-     * Validation method that terminates application performance if:
-     * - no config classes provided
-     * - a class from the provided config classes is both not {@link ComponentScan} annotated
-     * and does not have methods annotated with {@link Bean}
+     * Validation method that checks presence of a valid config class
      *
      * @param configs    config classes
      */
@@ -78,12 +75,10 @@ public class Scanner {
     }
 
     /**
-     * Method iterates over provided config classes and then over
-     * packages indicated in their {@link ComponentScan} annotation,
-     * finds {@link Component} annotated classes and calls their validation
+     * Method collects all {@link Component} annotated classes eligible for {@link BeanDefinition} creation
      *
      * @param configs   config classes
-     * @return          set of {@link Component} annotated classes eligible for {@link BeanDefinition} creation
+     * @return          set of all {@link Component} annotated classes eligible for {@link BeanDefinition} creation
      */
     private HashSet<Class<?>> getAllClassesAnnotatedWithComponent(List<Class<?>> configs) {
         var componentsFromAllConfigs = new HashSet<Class<?>>();
@@ -102,13 +97,11 @@ public class Scanner {
     }
 
     /**
-     * Method calls for return-type-classes of {@link Bean} annotated methods
-     * of the provided config classes, and composes set of classes
-     * eligible for {@link BeanDefinition} creation
+     * Method collects all classes eligible for {@link BeanDefinition} creation
      *
      * @param configs           config classes
      * @param componentClasses  set of {@link Component} annotated classes
-     * @return                  set of classes eligible for {@link BeanDefinition} creation
+     * @return                  set of all classes eligible for {@link BeanDefinition} creation
      */
     private Set<Class<?>> collectAllClassesForBeanDefinitionCreation(List<Class<?>> configs,
                                                                      Set<Class<?>> componentClasses) {
@@ -118,15 +111,6 @@ public class Scanner {
         return classes;
     }
 
-    /**
-     * Method iterates over submitted config classes,
-     * finds {@link Bean} annotated methods, calls validation of their return-type-classes
-     * and collects the valid ones
-     *
-     * @param configs   config classes
-     * @return          set of return-type-classes of {@link Bean} annotated methods
-     *                  eligible for {@link BeanDefinition} creation
-     */
     private Set<Class<?>> getAllClassesFromBeanAnnotation(List<Class<?>> configs) {
         var classesFromBeans = new HashSet<Class<?>>();
 

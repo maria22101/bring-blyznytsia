@@ -8,8 +8,8 @@ import com.blyznytsia.bring.context.exceptions.NoSuchBeanException;
 import lombok.Setter;
 
 /**
- * {@link ApplicationContext} is a class - holder of two containers:
- * {@link BeanDefinitionRegistry} and objects' storage
+ * {@link ApplicationContext} is a class that triggers population of objects' storage {@link Map}, holds it
+ *  and has functionality to retrieve objects from it.
  */
 @Setter
 public class ApplicationContext {
