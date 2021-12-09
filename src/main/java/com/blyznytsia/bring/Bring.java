@@ -4,8 +4,8 @@ import com.blyznytsia.bring.context.ApplicationContext;
 
 
 /**
- * {@link Bring} class instantiates ApplicationContext and calls its init() method for
- * further configuration
+ * {@link Bring} class instantiates ApplicationContext, calls its init() method for
+ * further configuration and returns the configured instance
  */
 public class Bring {
 

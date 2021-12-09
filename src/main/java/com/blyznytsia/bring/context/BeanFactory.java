@@ -13,6 +13,12 @@ import com.blyznytsia.bring.context.exceptions.CircularDependencyException;
  */
 public class BeanFactory {
 
+    /**
+     * Method populates the objects' storage {@link Map}
+     *
+     * @param beanDefinitionRegistry    {@link BeanDefinition} storage
+     * @param beanMap                   objects' storage
+     */
     public void traverseBeanDefinitionRegistryAndFillBeanMap(BeanDefinitionRegistry beanDefinitionRegistry,
                                                              Map<String, Object> beanMap) {
 
@@ -22,8 +28,8 @@ public class BeanFactory {
     }
 
     /**
-     * Method creates objects for classes with no dependencies by calling the related {@link BeanCreator}
-     * and places created objects into the objects' storage
+     * Method creates objects for classes with no dependencies
+     * and places them into the objects' storage
      *
      * @param beanDefinitionRegistry    {@link BeanDefinition} storage
      * @param beanMap                   objects' storage
@@ -43,9 +49,8 @@ public class BeanFactory {
     }
 
     /**
-     * Method creates objects for classes that have dependencies by calling the related {@link BeanCreator},
-     * configures the created objects by calling the related {@link BeanConfigurator}
-     * and places the created objects into the objects' storage
+     * Method creates objects for classes that have dependencies
+     * and places them into the objects' storage
      *
      * @param beanDefinitionRegistry    {@link BeanDefinition} storage
      * @param beanMap                   objects' storage
