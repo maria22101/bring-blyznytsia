@@ -12,11 +12,15 @@ import com.blyznytsia.bring.context.services.BeanConfigurator;
 
 import lombok.SneakyThrows;
 
+/**
+ * {@link AutowiredSetterBeanConfigurator} implements functionality of injecting into an object
+ * fields that are set via {@link Autowired} setters
+ */
 public class AutowiredSetterBeanConfigurator implements BeanConfigurator {
 
     @Override
     @SneakyThrows
-    public Object configure(Object objectToConfigure, BeanDefinition beanDefinition, Map<String, Object> beanMap) {
+    public void configure(Object objectToConfigure, BeanDefinition beanDefinition, Map<String, Object> beanMap) {
 
         Arrays.stream(objectToConfigure.getClass().getDeclaredMethods())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
@@ -31,8 +35,6 @@ public class AutowiredSetterBeanConfigurator implements BeanConfigurator {
                         throw new BeanCreationException("Unable to set field that corresponds to @Autowired setter");
                     }
                 });
-
-        return objectToConfigure;
     }
 
     private Field getFieldCorrespondingToSetterParameter(Class<?> setterParameterType,

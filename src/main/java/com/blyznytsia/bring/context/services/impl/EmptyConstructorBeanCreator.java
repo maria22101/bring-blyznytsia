@@ -8,10 +8,12 @@ import com.blyznytsia.bring.context.services.BeanCreator;
 
 import lombok.SneakyThrows;
 
+/**
+ * {@link EmptyConstructorBeanCreator} creates an object from empty constructor and places it in the objects' storage
+ */
 public class EmptyConstructorBeanCreator implements BeanCreator {
 
     @Override
-    @SneakyThrows
     public Object create(String className, Map<String, Object> beanMap) {
 
         return beanMap.computeIfAbsent(className, this::createBeanFromEmptyConstructor);

@@ -19,9 +19,7 @@ import com.blyznytsia.bring.context.services.impl.AutowiredSetterBeanConfigurato
 import com.blyznytsia.bring.context.services.impl.EmptyConstructorBeanCreator;
 
 /**
- *  Class generates BeanDefinition for the target class based of its class name
- *  and set of Class names that indicates a range where interface implementations to be found if the target class
- *  field is of an interface type
+ *  {@link BeanDefinitionGenerator} is an util class for creating {@link BeanDefinition}
  */
 public class BeanDefinitionGenerator {
 
@@ -53,7 +51,7 @@ public class BeanDefinitionGenerator {
                                                    Set<Class<?>> interfaceImplementationsRange) {
         return Arrays.stream(targetClass.getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(Autowired.class))
-                .map(field -> InterfaceAnalyzer.getImplementation(targetClass, field, interfaceImplementationsRange))
+                .map(field -> InterfaceAnalyzer.getType(targetClass, field, interfaceImplementationsRange))
                 .collect(toList());
     }
 

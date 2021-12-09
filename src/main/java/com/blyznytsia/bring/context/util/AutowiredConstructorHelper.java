@@ -12,6 +12,10 @@ import com.blyznytsia.bring.context.exceptions.AmbiguousAutowiredConstructorPara
 
 import lombok.SneakyThrows;
 
+/**
+ * {@link AutowiredConstructorHelper} is an util class that collects {@link Autowired} constructor
+ * parameters of a class and adds them to {@link BeanDefinition} of this class
+ */
 public class AutowiredConstructorHelper {
 
     @SneakyThrows

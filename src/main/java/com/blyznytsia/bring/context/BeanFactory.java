@@ -7,6 +7,10 @@ import java.util.stream.Collectors;
 import com.blyznytsia.bring.context.constants.BeanStatus;
 import com.blyznytsia.bring.context.exceptions.CircularDependencyException;
 
+/**
+ * {@link BeanFactory} class traverses through {@link BeanDefinitionRegistry},
+ * creates objects and populates the object's storage
+ */
 public class BeanFactory {
 
     public void traverseBeanDefinitionRegistryAndFillBeanMap(BeanDefinitionRegistry beanDefinitionRegistry,
@@ -17,6 +21,13 @@ public class BeanFactory {
         notifyAboutCircularDependency(beanDefinitionRegistry, beanMap);
     }
 
+    /**
+     * Method creates objects for classes with no dependencies by calling the related {@link BeanCreator}
+     * and places created objects into the objects' storage
+     *
+     * @param beanDefinitionRegistry    {@link BeanDefinition} storage
+     * @param beanMap                   objects' storage
+     */
     private void createBeansWithoutDependsOnFields(BeanDefinitionRegistry beanDefinitionRegistry,
                                                    Map<String, Object> beanMap) {
         List<BeanDefinition> beanDefinitionsForCreatingBeans = beanDefinitionRegistry.getBeanDefinitionMap().values()
@@ -31,6 +42,14 @@ public class BeanFactory {
                 });
     }
 
+    /**
+     * Method creates objects for classes that have dependencies by calling the related {@link BeanCreator},
+     * configures the created objects by calling the related {@link BeanConfigurator}
+     * and places the created objects into the objects' storage
+     *
+     * @param beanDefinitionRegistry    {@link BeanDefinition} storage
+     * @param beanMap                   objects' storage
+     */
     private void createBeansWithDependsOnFields(BeanDefinitionRegistry beanDefinitionRegistry,
                                                 Map<String, Object> beanMap) {
         while (beanMapNotReady(beanDefinitionRegistry) &&
@@ -78,7 +97,14 @@ public class BeanFactory {
                 .allMatch(beanMap::containsKey);
     }
 
-    // Simple circular dependency notifier: case when A -> B and B -> A
+    /**
+     * Method iterates over {@link BeanDefinition} that do not have objects of their related classes created
+     * and finds those whose dependencies contain the {@link BeanDefinition} the method is currently iterating over.
+     * {@link CircularDependencyException} is thrown in case of such finding.
+     *
+     * @param beanDefinitionRegistry    {@link BeanDefinition} storage
+     * @param beanMap                   objects' storage
+     */
     private void notifyAboutCircularDependency(BeanDefinitionRegistry beanDefinitionRegistry,
                                                Map<String, Object> beanMap) {
         if (beanMapNotReady(beanDefinitionRegistry)) {

@@ -5,13 +5,9 @@ import static java.util.stream.Collectors.toSet;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.reflections.Reflections;
 
@@ -25,30 +21,24 @@ import com.blyznytsia.bring.context.exceptions.InterfaceAnnotationException;
 import com.blyznytsia.bring.context.util.BeanDefinitionGenerator;
 
 /**
- * Class scans all packages and finds classes annotated with @Configuration, then in these classes
- * gets value of @ComponentScan annotation, in packages indicated as value of this annotation finds classes
- * annotated with @Component and populates packageComponentsMap where key is the package name,
- * value - collection of @Component classes of this package.
- * For each @Configuration class and for each package indicated in @ComponentScan and for each @Component
- * of this package BeanDefinition is generated and stored in BeanDefinitionRegistry's storage
+ * {@link Scanner} class purpose is to populate {@link BeanDefinitionRegistry} with {@link BeanDefinition}
  */
 public class Scanner {
 
-    private final Map<String, Set<Class<?>>> packagesAndTheirComponentsFromAllConfigs = new HashMap<>();
-    private Set<Class<?>> componentsFromAllConfigs;
-
     public void scanAndFillBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
         var configs = getConfigs();
-
         validateConfigs(configs);
+        var allComponentsClasses = getAllClassesAnnotatedWithComponent(configs);
+        var allClassesForBeanCreation = collectAllClassesForBeanDefinitionCreation(configs, allComponentsClasses);
 
-        collectPackagesAndTheirComponents(configs);
-
-        collectComponents(packagesAndTheirComponentsFromAllConfigs);
-
-        configs.forEach(config -> fillBeanDefinitionRegistry(config, registry));
+        allClassesForBeanCreation.forEach(targetClass -> registerBeanDefinition(targetClass, registry, allComponentsClasses));
     }
 
+    /**
+     * Method that scans all the packages
+     *
+     * @return a list of all {@link Configuration} annotated classes of the packages
+     */
     private List<Class<?>> getConfigs() {
         return Arrays.stream(Package.getPackages())
                 .flatMap(p -> {
@@ -57,6 +47,14 @@ public class Scanner {
                 }).collect(toList());
     }
 
+    /**
+     * Validation method that terminates application performance if:
+     * - no config classes provided
+     * - a class from the provided config classes is both not  {@link ComponentScan} annotated
+     * and does not have methods annotated with {@link Bean}
+     *
+     * @param configs    config classes
+     */
     private void validateConfigs(List<Class<?>> configs) {
         if (configs.isEmpty()) {
             throw new ConfigurationNotFoundException(
@@ -74,60 +72,70 @@ public class Scanner {
         });
     }
 
-    private void collectPackagesAndTheirComponents(List<Class<?>> configs) {
+    /**
+     * Method iterates over provided config classes and then over
+     * packages indicated in their {@link ComponentScan} annotation,
+     * finds {@link Component} annotated classes and calls their validation
+     *
+     * @param configs   config classes
+     * @return          set of {@link Component} annotated classes eligible for {@link BeanDefinition} creation
+     */
+    private HashSet<Class<?>> getAllClassesAnnotatedWithComponent(List<Class<?>> configs) {
+        var componentsFromAllConfigs = new HashSet<Class<?>>();
         configs.forEach(config -> {
             var packagesFromComponentScan = config.getAnnotation(ComponentScan.class).value();
 
             Arrays.stream(packagesFromComponentScan)
-                    .forEach(packageFromComponentScan -> {
-                        var reflection = new Reflections(packageFromComponentScan);
+                    .forEach(pckg -> {
+                        var reflection = new Reflections(pckg);
                         var packageComponents = reflection.getTypesAnnotatedWith(Component.class);
-                        packagesAndTheirComponentsFromAllConfigs.putIfAbsent(packageFromComponentScan, packageComponents);
+                        packageComponents.forEach(this::rejectInterfaceAnnotatedWithComponent);
+                        componentsFromAllConfigs.addAll(packageComponents);
                     });
         });
+        return componentsFromAllConfigs;
     }
 
-    private void collectComponents(Map<String, Set<Class<?>>> packagesAndTheirComponentsFromAllConfigs) {
-        componentsFromAllConfigs = packagesAndTheirComponentsFromAllConfigs.values()
-                .stream()
-                .flatMap(Collection::stream)
-                .collect(Collectors.toSet());
-    }
-
-    private void fillBeanDefinitionRegistry(Class<?> config,
-                                            BeanDefinitionRegistry registry) {
-        var packagesForCurrentConfig = config.getAnnotation(ComponentScan.class).value();
-
-        getAllClassesForCurrentConfig(config, packagesForCurrentConfig)
-                .forEach(targetClass ->
-                    registerBeanDefinition(targetClass, registry, componentsFromAllConfigs));
-    }
-
-    private Set<Class<?>> getAllClassesForCurrentConfig(Class<?> config,
-                                                        String[] packages) {
-        var classes = new HashSet<>(getClassesAnnotatedWithComponent(packages));
-        classes.addAll(getClassesFromBeanAnnotation(config));
+    /**
+     * Method calls for return-type-classes of {@link Bean} annotated methods
+     * of the provided config classes, and composes set of classes
+     * eligible for {@link BeanDefinition} creation
+     *
+     * @param configs           config classes
+     * @param componentClasses  set of {@link Component} annotated classes
+     * @return                  set of classes eligible for {@link BeanDefinition} creation
+     */
+    private Set<Class<?>> collectAllClassesForBeanDefinitionCreation(List<Class<?>> configs,
+                                                                     Set<Class<?>> componentClasses) {
+        var classes = new HashSet<>(componentClasses);
+        var classesFromBeanAnnotation = getAllClassesFromBeanAnnotation(configs);
+        classes.addAll(classesFromBeanAnnotation);
         return classes;
     }
 
-    private Set<Class<?>> getClassesAnnotatedWithComponent(String[] packages) {
-        var classes = packagesAndTheirComponentsFromAllConfigs.entrySet().stream()
-                .filter(entry -> List.of(packages).contains(entry.getKey()))
-                .flatMap(entry -> entry.getValue().stream())
-                .collect(Collectors.toSet());
-        classes.forEach(this::rejectInterfaceAnnotatedWithComponent);
-        return classes;
-    }
+    /**
+     * Method iterates over submitted config classes,
+     * finds {@link Bean} annotated methods, calls validation of their return-type-classes
+     * and collect the valid ones
+     *
+     * @param configs   config classes
+     * @return          set of return-type-classes of {@link Bean} annotated methods
+     *                  eligible for {@link BeanDefinition} creation
+     */
+    private Set<Class<?>> getAllClassesFromBeanAnnotation(List<Class<?>> configs) {
+        var classesFromBeans = new HashSet<Class<?>>();
 
-    private Set<Class<?>> getClassesFromBeanAnnotation(Class<?> config) {
-        var methodsAnnotatedWithBean = Arrays.stream(config.getMethods())
-                .filter(method -> method.isAnnotationPresent(Bean.class))
-                .collect(toSet());
-        methodsAnnotatedWithBean.forEach(this::rejectIfReturnTypeIsInterface);
+        configs.forEach(config -> {
+            var methodsAnnotatedWithBean = Arrays.stream(config.getMethods())
+                    .filter(method -> method.isAnnotationPresent(Bean.class))
+                    .collect(toSet());
+            methodsAnnotatedWithBean.forEach(this::rejectIfReturnTypeIsInterface);
 
-        return methodsAnnotatedWithBean.stream()
-                .map(Method::getReturnType)
-                .collect(toSet());
+            classesFromBeans.addAll(methodsAnnotatedWithBean.stream()
+                    .map(Method::getReturnType)
+                    .collect(toSet()));
+        });
+        return classesFromBeans;
     }
 
     private void rejectInterfaceAnnotatedWithComponent(Class<?> aClass) {
@@ -137,11 +145,19 @@ public class Scanner {
         }
     }
 
+    /**
+     * Method populates the provided {@link BeanDefinitionRegistry} with {@link BeanDefinition}
+     * received from call to {@link BeanDefinitionGenerator}
+     *
+     * @param targetClass           a class that is source for {@link BeanDefinition}
+     * @param registry              {@link BeanDefinition} container
+     * @param componentsClasses     all {@link Component} classes eligible for {@link BeanDefinition} creation
+     */
     private void registerBeanDefinition(Class<?> targetClass,
                                         BeanDefinitionRegistry registry,
-                                        Set<Class<?>> componentsFromAllConfigs) {
+                                        Set<Class<?>> componentsClasses) {
         if (!registry.containsBeanDefinition(targetClass.getName())) {
-            var beanDefinition = BeanDefinitionGenerator.generate(targetClass, componentsFromAllConfigs);
+            var beanDefinition = BeanDefinitionGenerator.generate(targetClass, componentsClasses);
             registry.registerBeanDefinition(targetClass.getName(), beanDefinition);
         }
     }
