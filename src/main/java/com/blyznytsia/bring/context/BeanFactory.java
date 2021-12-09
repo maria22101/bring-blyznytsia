@@ -7,6 +7,10 @@ import java.util.stream.Collectors;
 import com.blyznytsia.bring.context.constants.BeanStatus;
 import com.blyznytsia.bring.context.exceptions.CircularDependencyException;
 
+/**
+ * {@link BeanFactory} class traverses through {@link BeanDefinitionRegistry},
+ * creates objects and populates the object's storage
+ */
 public class BeanFactory {
 
     public void traverseBeanDefinitionRegistryAndFillBeanMap(BeanDefinitionRegistry beanDefinitionRegistry,

@@ -11,11 +11,15 @@ import com.blyznytsia.bring.context.services.BeanConfigurator;
 
 import lombok.SneakyThrows;
 
+/**
+ *{@link AutowiredFieldBeanConfigurator} implements functionality of injecting fields annotated with {@link Autowired}
+ * into an object
+ */
 public class AutowiredFieldBeanConfigurator implements BeanConfigurator {
 
     @Override
     @SneakyThrows
-    public Object configure(Object objectToConfigure, BeanDefinition beanDefinition, Map<String, Object> beanMap) {
+    public void configure(Object objectToConfigure, BeanDefinition beanDefinition, Map<String, Object> beanMap) {
 
         Arrays.stream(objectToConfigure.getClass().getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(Autowired.class))
@@ -30,22 +34,20 @@ public class AutowiredFieldBeanConfigurator implements BeanConfigurator {
                         throw new BeanCreationException("Unable to set @Autowired field");
                     }
                 });
-
-        return objectToConfigure;
     }
 
     private String getImplementation(Field field, BeanDefinition beanDefinition) {
         var fieldInterface = field.getType();
         return beanDefinition.getDependsOnFields().stream()
                 .filter(dependOn -> {
-                            Class<?> dependOnClass = null;
-                            try {
-                                dependOnClass = Class.forName(dependOn);
-                            } catch (ClassNotFoundException e) {
-                                e.printStackTrace();
-                            }
-                            return isClassInterfaceImplementation(dependOnClass, fieldInterface);
-                        })
+                    Class<?> dependOnClass = null;
+                    try {
+                        dependOnClass = Class.forName(dependOn);
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                    return isClassInterfaceImplementation(dependOnClass, fieldInterface);
+                })
                 .findFirst()
                 .orElseThrow();
     }

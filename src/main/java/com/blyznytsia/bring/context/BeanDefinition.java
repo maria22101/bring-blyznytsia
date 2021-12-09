@@ -8,12 +8,14 @@ import com.blyznytsia.bring.context.services.BeanCreator;
 
 import lombok.Data;
 
+/**
+ * {@link BeanDefinition} holds a class metadata.
+ */
 @Data
 public class BeanDefinition {
     private String className;
-    private String scope;
-    private List<BeanConfigurator> beanConfigurators; // responsible for configuring already created bean: fields autowiring, fields autowiring via setter ...
-    private BeanCreator beanCreator; //responsible for creation modes
+    private BeanCreator beanCreator;
+    private List<BeanConfigurator> beanConfigurators;
     private List<String> dependsOnFields;
     private BeanStatus status = BeanStatus.INITIALIZING;
 }

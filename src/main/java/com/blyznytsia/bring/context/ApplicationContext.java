@@ -7,6 +7,10 @@ import com.blyznytsia.bring.context.exceptions.NoSuchBeanException;
 
 import lombok.Setter;
 
+/**
+ * {@link ApplicationContext} is a class - holder of two containers:
+ * {@link BeanDefinitionRegistry} and objects' storage
+ */
 @Setter
 public class ApplicationContext {
 

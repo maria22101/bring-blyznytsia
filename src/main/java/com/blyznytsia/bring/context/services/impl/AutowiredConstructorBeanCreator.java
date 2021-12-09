@@ -11,10 +11,13 @@ import com.blyznytsia.bring.context.services.BeanCreator;
 
 import lombok.SneakyThrows;
 
+/**
+ * {@link AutowiredConstructorBeanCreator} creates an object from autowired constructor
+ * and places it in the objects' storage
+ */
 public class AutowiredConstructorBeanCreator implements BeanCreator {
 
     @Override
-    @SneakyThrows
     public Object create(String className, Map<String, Object> beanMap) {
 
         return beanMap.computeIfAbsent(className,

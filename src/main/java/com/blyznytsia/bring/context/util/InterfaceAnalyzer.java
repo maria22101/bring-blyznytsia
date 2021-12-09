@@ -10,11 +10,14 @@ import com.blyznytsia.bring.context.annotation.Component;
 import com.blyznytsia.bring.context.annotation.Qualifier;
 import com.blyznytsia.bring.context.exceptions.InterfaceInjectionException;
 
+/**
+ * {@link InterfaceAnalyzer} is an util class that defines a class type for a field
+ */
 public class InterfaceAnalyzer {
 
-    public static String getImplementation(Class<?> targetClass,
-                                           Field field,
-                                           Set<Class<?>> interfaceImplementationsRange) {
+    public static String getType(Class<?> targetClass,
+                                 Field field,
+                                 Set<Class<?>> interfaceImplementationsRange) {
         if(fieldIsNotInterface(field)) {
             return field.getType().getName();
         }
